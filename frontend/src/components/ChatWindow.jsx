@@ -146,7 +146,9 @@ export default function ChatWindow({ mode, token, activeConversationId, llmModel
             const chunkValue = decoder.decode(value);
             setMessages(prev => {
               const newMessages = [...prev];
-              newMessages[newMessages.length - 1].content += chunkValue;
+              const lastIndex = newMessages.length - 1;
+              const lastMsg = newMessages[lastIndex];
+              newMessages[lastIndex] = { ...lastMsg, content: lastMsg.content + chunkValue };
               return newMessages;
             });
           }

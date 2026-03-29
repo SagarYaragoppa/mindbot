@@ -14,7 +14,7 @@ def get_history(user_id: str):
         session_memories[user_id] = []
     return session_memories[user_id]
 
-async def generate_chat_stream(message: str, conversation_id: int, user_id: int, db: Session, model_name: str = "llama3.1", temperature: float = 0.7):
+def generate_chat_stream(message: str, conversation_id: int, user_id: int, db: Session, model_name: str = "llama3.1", temperature: float = 0.7):
     """Generate a streamed response token by token using custom Memory Buffer and archive to database."""
     history = get_history(str(user_id))
     dynamic_llm = OllamaLLM(model=model_name, temperature=temperature, base_url="http://localhost:11434")
