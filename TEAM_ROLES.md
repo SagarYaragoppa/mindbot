@@ -1,8 +1,22 @@
 # MindBot Team Structure & Work Division
 
+## 👑 Team Leader
+
+### 0. Sagar Ramesh Yaragoppa - Team Leader
+
+**Focus:** Overall project direction, coordination, and decision-making.
+
+**Responsibilities:** Ensure smooth communication between all teams, track progress, and make high-level technical and strategic decisions.
+
+**What they manage:**
+- Project planning, deadlines, and task distribution.
+- Coordination between Backend, Frontend, AI, and DevOps teams.
+- Reviewing architecture decisions and ensuring scalability of the system.
+- Final integration and presentation of the project.
+
 ## 🏗️ Backend Team (3 developers)
 
-### 1. Backend Core & Database Architect
+### 1. Rugved Narendra Bhandarkar - Backend Core & Database Architect
 **Focus:** Infrastructure, API structure, and Database modeling.
 * **Responsibilities:** Set up the base FastAPI application, connect it to the SQLite database via SQLAlchemy, and manage routing.
 * **What they build:**
@@ -10,7 +24,7 @@
   * `backend/models/database.py`: Define the DB models (`User`, `Conversation`, `ChatMessage`).
   * `backend/core/security.py`: Implement rate-limiting and baseline application security.
 
-### 2. Security & Authentication Engineer
+### 2. Kavya PatelSecurity & Authentication Engineer
 **Focus:** User management, login sessions, and admin capabilities.
 * **Responsibilities:** Ensure that only verified users can access the application and restrict sensitive features to administrators.
 * **What they build:**
@@ -18,7 +32,7 @@
   * `backend/services/auth_service.py`: Password hashing, JWT token creation, and validation.
   * `backend/routes/admin.py`: Endpoints for managing users and viewing platform statistics.
 
-### 3. AI & Chat Integration Engineer
+### 3. Shreya Diliprao Thakare - AI & Chat Integration Engineer
 **Focus:** Core conversational magic and response generation.
 * **Responsibilities:** Manage the integration with the local LLM (Ollama) and ensure conversational context is maintained cleanly.
 * **What they build:**
@@ -31,7 +45,7 @@
 
 ## 🧠 Data & Search Team (1 developer)
 
-### 4. RAG / Data Engineer
+### 4. Sagar Ramesh Yaragoppa - RAG / Data Engineer
 **Focus:** Document processing, vector databases, and retrieval.
 * **Responsibilities:** Ingest knowledge so the bot can answer contextual questions outside its training data.
 * **What they build:**
@@ -43,7 +57,7 @@
 
 ## 🎨 Frontend Team (3 developers)
 
-### 5. Frontend Lead & State Manager
+### 5. Yash Sudam Ukirde - Frontend Lead & State Manager
 **Focus:** Web app foundation, routing, and global state tracking.
 * **Responsibilities:** Keep the React application organized, manage global user sessions, and connect to the backend APIs.
 * **What they build:**
@@ -52,7 +66,7 @@
   * Global state management (Context API or Zustand) to track the active User, active Conversation ID, and loading states.
   * `src/App.jsx` and general Navigation (Sidebar/Header).
 
-### 6. Chat UI/UX Engineer
+### 6. Lathisha Padayachi - Chat UI/UX Engineer
 **Focus:** The main chat window and user interactions.
 * **Responsibilities:** Build a beautiful, responsive, and dynamic chat interface that feels high-quality and premium.
 * **What they build:**
@@ -61,7 +75,7 @@
   * Reading the streaming chunk responses from the backend (handling Server-Sent Events or async generators) and displaying typewriter effects.
   * Auto-scrolling, copying text, and input expanding behaviors.
 
-### 7. Document & Settings UI Developer
+### 7. Sahil Kadaskar - Document & Settings UI Developer
 **Focus:** The interface for the RAG features and User Settings/Admin components.
 * **Responsibilities:** Provide the user with tools to upload their knowledge base, as well as an admin portal.
 * **What they build:**
@@ -74,7 +88,7 @@
 
 ## ⚙️ Quality Assurance & DevOps (1 developer)
 
-### 8. QA, Testing, & DevOps Engineer
+### 8.Khushal Moundekar - QA, Testing, & DevOps Engineer
 **Focus:** Stability, deployment, testing, and developer experience.
 * **Responsibilities:** Ensure that what the team builds works perfectly together and can be deployed easily.
 * **What they build:**
@@ -85,12 +99,4 @@
 
 ---
 
-## Brief Summary of Collaboration Workflow
 
-To ensure this team functions successfully without stepping on each other's toes:
-1. **API First:** The Backend & Frontend Leads should define exactly what the JSON request/responses will look like *before* writing code.
-2. **Git Branches:** Each numbered role should work on their own branch feature (e.g., `feature/document-ui`) and submit Pull Requests to `main`.
-3. **Weekly Syncs:** 
-   - Feature 3 (AI) needs to sync heavily with Feature 6 (Chat UI).
-   - Feature 4 (RAG) needs to sync heavily with Feature 7 (Doc UI).
-   - Feature 2 (Security) needs to sync heavily with Feature 5 (State Manager).

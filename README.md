@@ -109,6 +109,9 @@ mindbot/
 └── README.md                 # This documentation file
 ```
 
+## 👥 Team & Contributions
+Detailed roles and responsibilities are documented in [TEAM_ROLES.md](./TEAM_ROLES.md).
+
 ## Contributing
 Contributions are welcome. Please open an issue or submit a pull request for any enhancements or bug fixes.
 
