@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+sqlalchemy
+faiss-cpu
+langchain
+langchain-ollama
+langchain-community
+python-multipart
+SpeechRecognition
+pypdf

@@ -1,0 +1,136 @@
+📘 1. PROJECT REQUIREMENT DOCUMENT (PRD)
+🧠 Project Title
+MindBot — Intelligent Conversational AI Assistant
+🎯 Objective
+To build a scalable, modular, multi-modal AI chatbot that supports:
+Context-aware conversations
+Document-based Q&A (RAG)
+Voice and image input
+Tool-based autonomous actions
+👥 Target Users
+Students
+Developers
+General users
+⚙️ Core Features
+🔹 1. Chat System
+Natural conversation
+Multi-turn memory
+🔹 2. RAG (Knowledge Base)
+Upload PDFs
+Ask questions from documents
+🔹 3. Voice Interaction
+Speech-to-text input
+🔹 4. Vision System
+Image understanding
+🔹 5. Agent Mode
+Perform tasks (calculator, code execution)
+🚀 Goals
+Build production-style architecture
+Ensure modular design
+Enable easy integration via APIs
+❌ Non-Goals
+No paid APIs
+No heavy cloud infrastructure
+🏗️ 2. SYSTEM ARCHITECTURE DOCUMENT
+🔁 High-Level Flow
+User → React UI → FastAPI → Services → AI Engine → Response
+🧩 Components
+Frontend
+React.js
+Backend
+FastAPI
+AI Layer
+Ollama
+Llama 3 8B
+Data Layer
+FAISS
+SQLite
+🧠 Services
+Chat Service
+RAG Service
+Memory Service
+Agent Service
+Multimodal Service
+🔌 3. API SPECIFICATION DOCUMENT
+🔹 Chat API
+POST /chat
+Request:
+{
+  "message": "Explain AI"
+}
+Response:
+{
+  "reply": "AI stands for Artificial Intelligence..."
+}
+🔹 Upload Document
+POST /upload-doc
+Request:
+(file)
+Response:
+{
+  "status": "uploaded"
+}
+🔹 RAG Query
+POST /ask-rag
+{
+  "question": "What is in document?"
+}
+🔹 Voice Input
+POST /voice
+(audio file)
+🔹 Agent Task
+POST /agent
+{
+  "task": "Calculate 45*78"
+}
+🧠 4. PROMPT DESIGN DOCUMENT
+🔹 System Prompt
+You are an intelligent AI assistant. Provide clear, concise, and helpful answers.
+🔹 RAG Prompt
+Answer ONLY using the provided context. If not found, say "I don't know".
+🔹 Safety Prompt
+Do not generate harmful, biased, or unsafe content.
+🔁 5. DATA FLOW DOCUMENT
+🔹 Chat Flow
+User → API → LLM → Response
+🔹 RAG Flow
+PDF → Chunk → Embedding → FAISS → Retrieval → LLM
+🗂️ 6. DATABASE SCHEMA
+users(id, name)
+chats(id, user_id, message, response, timestamp)
+🧪 7. EVALUATION PLAN
+Metrics:
+Accuracy
+Response time
+Relevance
+Tests:
+Ask factual questions
+Compare answers
+Detect hallucination
+🧩 8. FEATURE TASK BREAKDOWN
+Build chat API
+Integrate LLM
+Add RAG pipeline
+Add memory
+Build UI
+Add voice
+Add agent
+📁 9. FOLDER STRUCTURE
+mindbot/
+├── backend/
+│   ├── routes/
+│   ├── services/
+│   ├── models/
+│   ├── main.py
+│
+├── frontend/
+│
+├── data/
+│
+└── README.md
+📄 10. README (FINAL)
+Includes:
+Project overview
+Features
+Tech stack
+Setup steps
