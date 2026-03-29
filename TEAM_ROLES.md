@@ -2,7 +2,7 @@
 
 ## 👑 Team Leader
 
-### 0. Sagar Ramesh Yaragoppa - Team Leader
+### Sagar Ramesh Yaragoppa - Team Leader
 
 **Focus:** Overall project direction, coordination, and decision-making.
 
