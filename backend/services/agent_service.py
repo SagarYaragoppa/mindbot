@@ -1,10 +1,17 @@
-import uuid
 import typing
 from langchain_ollama import ChatOllama
 from langchain_community.tools import DuckDuckGoSearchRun
-from langchain_experimental.tools import PythonREPLTool
 from langchain_core.tools import Tool
 import numexpr as ne
+
+# Safe import for experimental tools
+try:
+    from langchain_experimental.tools import PythonREPLTool
+    python_repl = PythonREPLTool()
+    HAS_PYTHON_REPL = True
+except ImportError:
+    python_repl = None
+    HAS_PYTHON_REPL = False
 
 # Resilient import for LangGraph vs LangChain
 try:
@@ -13,9 +20,7 @@ try:
 except ImportError:
     HAS_REACT_AGENT = False
 
-# Global instantiations removed to allow dynamic config overrides
 search_tool = DuckDuckGoSearchRun()
-python_repl = PythonREPLTool()
 
 def calculate(expression: str) -> str:
     try:
@@ -41,13 +46,17 @@ tools = [
         func=search,
         description="Searches the web."
     ),
-    Tool(
-        name="Python_REPL",
-        func=repl,
-        description="Executes python script."
-    ),
     calculator_tool
 ]
+
+if HAS_PYTHON_REPL:
+    tools.append(
+        Tool(
+            name="Python_REPL",
+            func=repl,
+            description="Executes python script."
+        )
+    )
 
 def run_agent_task(task_instruction: str, model_name: str = "llama3.1", temperature: float = 0.7) -> str:
     """Executes the Agent action securely."""
