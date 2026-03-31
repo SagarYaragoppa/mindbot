@@ -1,13 +1,26 @@
 from langchain_ollama import OllamaLLM
-
-# Removed global LLM instance for dynamic Settings payload overrides
+from langchain_google_genai import ChatGoogleGenerativeAI
+import os
+from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from backend.models.database import ChatMessage, Conversation
+
+load_dotenv()
 
 # Dictionary to maintain session memories dynamically
 session_memories = {}
 
-
+def get_llm(model_name: str = "llama3.1", temperature: float = 0.7):
+    """Factory to get either Ollama or Google Gemini based on model name."""
+    if "gemini" in model_name.lower():
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            raise ValueError("GOOGLE_API_KEY not found in environment variables")
+        return ChatGoogleGenerativeAI(model=model_name, temperature=temperature, google_api_key=api_key)
+    
+    # Default to Ollama
+    base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    return OllamaLLM(model=model_name, temperature=temperature, base_url=base_url)
 
 def get_history(user_id: str):
     if user_id not in session_memories:
@@ -17,7 +30,7 @@ def get_history(user_id: str):
 def generate_chat_stream(message: str, conversation_id: int, user_id: int, db: Session, model_name: str = "llama3.1", temperature: float = 0.7):
     """Generate a streamed response token by token using custom Memory Buffer and archive to database."""
     history = get_history(str(user_id))
-    dynamic_llm = OllamaLLM(model=model_name, temperature=temperature, base_url="http://localhost:11434")
+    llm = get_llm(model_name=model_name, temperature=temperature)
     
     # Retrieve formatted string history (keep last few for context)
     context = ""
@@ -27,11 +40,19 @@ def generate_chat_stream(message: str, conversation_id: int, user_id: int, db: S
     prompt = f"System: You are MindBot, an intelligent and helpful AI assistant. Refer to the previous context if necessary.\nContext:\n{context}\n\nUser: {message}\nBot:"
     
     full_response = ""
-    for chunk in dynamic_llm.stream(prompt):
-        full_response += chunk
-        yield chunk
+    # Standardize streaming across different LLM types
+    if hasattr(llm, "stream"):
+        for chunk in llm.stream(prompt):
+            content = chunk.content if hasattr(chunk, "content") else str(chunk)
+            full_response += content
+            yield content
+    else:
+        # Fallback for LLMs that don't support stream or have different interface
+        content = llm.invoke(prompt)
+        full_response = content.content if hasattr(content, "content") else str(content)
+        yield full_response
         
-    # Persist the full response safely to the database explicitly since stream bypasses routes
+    # Persist the full response safely to the database
     chat_msg = ChatMessage(
         conversation_id=conversation_id,
         user_id=user_id,
@@ -44,10 +65,12 @@ def generate_chat_stream(message: str, conversation_id: int, user_id: int, db: S
     conversation = db.query(Conversation).filter(Conversation.id == conversation_id).first()
     if conversation and conversation.title == "New Chat":
         try:
-            suggested_title = dynamic_llm.invoke(f"Give a punchy, 3-word title for this user message: '{message}'. Respond with just the title, no quotes.").strip()
-            conversation.title = suggested_title
-        except Exception as e:
-            pass  # Fail gracefully if Ollama stumbles
+            title_prompt = f"Give a punchy, 3-word title for this user message: '{message}'. Respond with just the title, no quotes."
+            res = llm.invoke(title_prompt)
+            suggested_title = res.content if hasattr(res, 'content') else str(res)
+            conversation.title = suggested_title.strip()
+        except Exception:
+            pass  # Fail gracefully
             
     db.commit()
     
@@ -59,7 +82,8 @@ def generate_chat_stream(message: str, conversation_id: int, user_id: int, db: S
     if len(history) > 12:
         try:
             summary_prompt = "Summarize this conversation concisely:\n" + "\n".join([f"{m['role']}: {m['content']}" for m in history[:6]])
-            summary = dynamic_llm.invoke(summary_prompt)
+            res = llm.invoke(summary_prompt)
+            summary = res.content if hasattr(res, 'content') else str(res)
             # Replace oldest items with the summary
             session_memories[str(user_id)] = [{"role": "System", "content": f"Previous conversation summary: {summary}"}] + history[6:]
         except Exception:
@@ -68,10 +92,12 @@ def generate_chat_stream(message: str, conversation_id: int, user_id: int, db: S
 def generate_chat_response(message: str, user_id: int = 1, model_name: str = "llama3.1", temperature: float = 0.7) -> str:
     """Fallback non-streaming response."""
     history = get_history(str(user_id))
-    dynamic_llm = OllamaLLM(model=model_name, temperature=temperature, base_url="http://localhost:11434")
+    llm = get_llm(model_name=model_name, temperature=temperature)
     context = "".join([f"{msg['role']}: {msg['content']}\n" for msg in history[-10:]])
     prompt = f"System: You are MindBot. Refer to the previous context if necessary.\nContext:\n{context}\n\nUser: {message}\nBot:"
-    response = dynamic_llm.invoke(prompt)
+    
+    res = llm.invoke(prompt)
+    response = res.content if hasattr(res, 'content') else str(res)
     
     history.append({"role": "User", "content": message})
     history.append({"role": "Bot", "content": response})

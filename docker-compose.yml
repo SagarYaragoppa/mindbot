@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./mindbot.db
+      - ALLOW_ORIGINS=http://localhost:5173,http://your-production-domain.com
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    volumes:
+      - ./backend/mindbot.db:/app/mindbot.db
+      - ./data:/app/data
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:8000
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
