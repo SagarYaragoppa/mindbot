@@ -2,19 +2,23 @@ fastapi
 uvicorn
 sqlalchemy
 faiss-cpu
+
 langchain==0.2.1
 langchain-core==0.2.5
-langchain-community==0.2.1
-langchain-ollama
-langchain-google-genai
+langchain-community==0.2.16   ✅ FIXED
 langchain-experimental==0.0.65
+
+langchain-ollama
+python-multipart
+SpeechRecognition
+pypdf
+langchain-google-genai
 google-generativeai
 python-dotenv
 slowapi
 python-jose[cryptography]
 passlib[bcrypt]
+
 python-multipart
-SpeechRecognition
-pypdf
 python-magic-bin; sys_platform == 'win32'
 python-magic; sys_platform != 'win32'
