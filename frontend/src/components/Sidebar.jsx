@@ -10,7 +10,7 @@ export default function Sidebar({ setMode, setToken, activeConversationId, setAc
 
   useEffect(() => {
     // Fetch implicitly synced documents from the FAISS backend data layer mapping
-    axios.get('http://localhost:8000/list-docs')
+    axios.get(`${import.meta.env.VITE_API_BASE_URL}/list-docs`)
       .then(res => {
         setUploadedFiles(res.data.documents || []);
       })
@@ -21,7 +21,7 @@ export default function Sidebar({ setMode, setToken, activeConversationId, setAc
 
   const fetchConversations = async () => {
     try {
-      const res = await axios.get('http://localhost:8000/conversations');
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/conversations`);
       setConversations(res.data);
       if (res.data.length > 0 && !activeConversationId) {
         setActiveConversationId(res.data[0].id);
@@ -35,7 +35,7 @@ export default function Sidebar({ setMode, setToken, activeConversationId, setAc
 
   const createNewChat = async () => {
     try {
-      const res = await axios.post('http://localhost:8000/conversations');
+      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/conversations`);
       setConversations(prev => [res.data, ...prev]);
       setActiveConversationId(res.data.id);
     } catch (err) {
@@ -46,7 +46,7 @@ export default function Sidebar({ setMode, setToken, activeConversationId, setAc
   const handleDelete = async (fname) => {
     try {
       setUploadStatus(`Deleting ${fname}...`);
-      await axios.delete(`http://localhost:8000/delete-doc/${fname}`);
+      await axios.delete(`${import.meta.env.VITE_API_BASE_URL}/delete-doc/${fname}`);
       setUploadedFiles(prev => prev.filter(f => f !== fname));
       setUploadStatus(`Successfully removed ${fname}`);
     } catch (err) {
@@ -65,7 +65,7 @@ export default function Sidebar({ setMode, setToken, activeConversationId, setAc
     setUploadStatus('Uploading...');
 
     try {
-      const res = await axios.post('http://localhost:8000/upload-doc', formData, {
+      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/upload-doc`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setUploadStatus(`Success: ${res.data.chunks} chunks indexed`);

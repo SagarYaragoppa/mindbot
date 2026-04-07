@@ -15,7 +15,7 @@ export default function AuthView({ setToken }) {
     setLoading(true);
 
     try {
-      const endpoint = isLogin ? 'http://localhost:8000/auth/login' : 'http://localhost:8000/auth/register';
+      const endpoint = isLogin ? `${import.meta.env.VITE_API_BASE_URL}/auth/login` : `${import.meta.env.VITE_API_BASE_URL}/auth/register`;
       const res = await axios.post(`${endpoint}`, {
         username,
         password

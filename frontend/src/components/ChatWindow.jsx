@@ -25,7 +25,7 @@ export default function ChatWindow({ mode, token, activeConversationId, llmModel
 
   useEffect(() => {
     if (activeConversationId && token) {
-      axios.get(`http://localhost:8000/conversations/${activeConversationId}/messages`)
+      axios.get(`${import.meta.env.VITE_API_BASE_URL}/conversations/${activeConversationId}/messages`)
         .then(res => {
           if (res.data.length === 0) {
             setMessages([{ role: 'bot', content: `Started new ${mode} conversation.` }]);
@@ -65,7 +65,7 @@ export default function ChatWindow({ mode, token, activeConversationId, llmModel
           // Provide visual hint on the input box
           setInput('Transcribing audio...');
           
-          const res = await axios.post('http://localhost:8000/voice-transcribe', formData);
+          const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/voice-transcribe`, formData);
           const transcribedText = res.data.text;
           
           if (!transcribedText || transcribedText.trim() === '') {
@@ -118,7 +118,7 @@ export default function ChatWindow({ mode, token, activeConversationId, llmModel
         formData.append('file', imageFile);
         if (textToSend) formData.append('prompt', textToSend);
 
-        const res = await axios.post('http://localhost:8000/vision', formData);
+        const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/vision`, formData);
         setMessages(prev => [...prev, { role: 'bot', content: res.data.reply }]);
         setImageFile(null);
         
@@ -126,7 +126,7 @@ export default function ChatWindow({ mode, token, activeConversationId, llmModel
         // STREAMING CHAT
         setMessages(prev => [...prev, { role: 'bot', content: '' }]);
         
-        const response = await fetch('http://localhost:8000/chat/stream', {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chat/stream`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -155,11 +155,11 @@ export default function ChatWindow({ mode, token, activeConversationId, llmModel
         }
       } else {
         // RAG or AGENT modes
-        let endpoint = 'http://localhost:8000/ask-rag';
+        let endpoint = `${import.meta.env.VITE_API_BASE_URL}/ask-rag`;
         let payload = { question: textToSend };
 
         if (mode === 'agent') {
-          endpoint = 'http://localhost:8000/agent';
+          endpoint = `${import.meta.env.VITE_API_BASE_URL}/agent`;
           payload = { task: textToSend, model: llmModel, temperature: temperature };
         }
         

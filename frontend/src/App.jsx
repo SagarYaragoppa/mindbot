@@ -29,7 +29,7 @@ function App() {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       // Verify token and explicitly fetch Role escalation capabilities
-      axios.get('http://localhost:8000/auth/me')
+      axios.get(`${import.meta.env.VITE_API_BASE_URL}/auth/me`)
         .then(res => setIsAdmin(res.data.is_admin))
         .catch(err => {
           console.error("Invalid token session:", err);

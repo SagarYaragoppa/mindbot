@@ -9,10 +9,10 @@ export default function AdminDashboard({ token }) {
 
   const fetchAdminData = async () => {
     try {
-      const statsRes = await axios.get('http://localhost:8000/admin/stats');
+      const statsRes = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/admin/stats`);
       setStats(statsRes.data);
       
-      const usersRes = await axios.get('http://localhost:8000/admin/users');
+      const usersRes = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/admin/users`);
       setUsers(usersRes.data);
     } catch (err) {
       console.error(err);
@@ -27,7 +27,7 @@ export default function AdminDashboard({ token }) {
   const handleDeleteUser = async (userId) => {
     try {
       if(window.confirm("Are you sure you want to permanently delete this user and all their conversation history globally?")) {
-        await axios.delete(`http://localhost:8000/admin/users/${userId}`);
+        await axios.delete(`${import.meta.env.VITE_API_BASE_URL}/admin/users/${userId}`);
         fetchAdminData(); // Refresh gracefully explicitly
       }
     } catch (err) {
