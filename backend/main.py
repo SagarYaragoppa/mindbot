@@ -19,6 +19,9 @@ app = FastAPI(title="MindBot API")
 # Setup CORS to allow React frontend
 origins = os.getenv("ALLOW_ORIGINS", "http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174,https://mindbot-gold.vercel.app").split(",")
 
+if "https://mindbot-gold.vercel.app" not in origins:
+    origins.append("https://mindbot-gold.vercel.app")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
