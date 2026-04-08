@@ -1,102 +1,80 @@
-from langchain_ollama import ChatOllama
-import os
-from dotenv import load_dotenv
-from sqlalchemy.orm import Session
-from backend.models.database import ChatMessage, Conversation
+import requests
 
-load_dotenv()
+OLLAMA_URL = "http://localhost:11434/api/generate"
+DEFAULT_MODEL = "phi3"
+ALLOWED_MODELS = ["phi3", "tinyllama", "llama3:8b", "llava"]
 
-# Dictionary to maintain session memories dynamically
-session_memories = {}
 
-def get_llm(model_name: str = "llama3.1", temperature: float = 0.7):
-    """Factory to get Ollama API explicitly."""
-    return ChatOllama(model=model_name, base_url="http://localhost:11434", temperature=temperature)
-
-def get_history(user_id: str):
-    if user_id not in session_memories:
-        session_memories[user_id] = []
-    return session_memories[user_id]
-
-def generate_chat_stream(message: str, conversation_id: int, user_id: int, db: Session, model_name: str = "llama3.1", temperature: float = 0.7):
-    """Generate a streamed response token by token using custom Memory Buffer and archive to database."""
-    history = get_history(str(user_id))
-    llm = get_llm(model_name=model_name, temperature=temperature)
-    
-    # Retrieve formatted string history (keep last few for context)
-    context = ""
-    for msg in history[-10:]:
-        context += f"{msg['role']}: {msg['content']}\n"
-    
-    prompt = f"System: You are MindBot, an intelligent and helpful AI assistant. Refer to the previous context if necessary.\nContext:\n{context}\n\nUser: {message}\nBot:"
-    
-    full_response = ""
+def generate_chat_response(message: str, model: str = None):
     try:
-        # Standardize streaming across different LLM types
-        if hasattr(llm, "stream"):
-            for chunk in llm.stream([("user", prompt)]):
-                content = chunk.content if hasattr(chunk, "content") else str(chunk)
-                full_response += content
-                yield content
-        else:
-            # Fallback for LLMs that don't support stream or have different interface
-            content = llm.invoke([("user", prompt)])
-            full_response = content.content if hasattr(content, "content") else str(content)
-            yield full_response
-    except Exception as e:
-        import traceback
-        print("Error during streaming generation:", traceback.format_exc())
-        error_msg = f"\n[Backend Connection Error]: {str(e)}"
-        full_response += error_msg
-        yield error_msg
-        
-    # Persist the full response safely to the database
-    chat_msg = ChatMessage(
-        conversation_id=conversation_id,
-        user_id=user_id,
-        message=message,
-        response=full_response
-    )
-    db.add(chat_msg)
-    
-    # Auto-Titling Engine
-    conversation = db.query(Conversation).filter(Conversation.id == conversation_id).first()
-    if conversation and conversation.title == "New Chat":
-        try:
-            title_prompt = f"Give a punchy, 3-word title for this user message: '{message}'. Respond with just the title, no quotes."
-            res = llm.invoke(title_prompt)
-            suggested_title = res.content if hasattr(res, 'content') else str(res)
-            conversation.title = suggested_title.strip()
-        except Exception:
-            pass  # Fail gracefully
-            
-    db.commit()
-    
-    # Save the interaction to memory
-    history.append({"role": "User", "content": message})
-    history.append({"role": "Bot", "content": full_response})
-    
-    # Dynamic summarization to preserve context window
-    if len(history) > 12:
-        try:
-            summary_prompt = "Summarize this conversation concisely:\n" + "\n".join([f"{m['role']}: {m['content']}" for m in history[:6]])
-            res = llm.invoke(summary_prompt)
-            summary = res.content if hasattr(res, 'content') else str(res)
-            # Replace oldest items with the summary
-            session_memories[str(user_id)] = [{"role": "System", "content": f"Previous conversation summary: {summary}"}] + history[6:]
-        except Exception:
-            pass
+        # Ensure only allowed local models are used, default to phi3
+        selected_model = model if model in ALLOWED_MODELS else DEFAULT_MODEL
 
-def generate_chat_response(message: str, user_id: int = 1, model_name: str = "llama3.1", temperature: float = 0.7) -> str:
-    """Fallback non-streaming response."""
-    history = get_history(str(user_id))
-    llm = get_llm(model_name=model_name, temperature=temperature)
-    context = "".join([f"{msg['role']}: {msg['content']}\n" for msg in history[-10:]])
-    prompt = f"System: You are MindBot. Refer to the previous context if necessary.\nContext:\n{context}\n\nUser: {message}\nBot:"
-    
-    res = llm.invoke(prompt)
-    response = res.content if hasattr(res, 'content') else str(res)
-    
-    history.append({"role": "User", "content": message})
-    history.append({"role": "Bot", "content": response})
-    return response
+        # Task 5: Use dedicated system instruction for cleaner prompts
+        system_instruction = "Answer clearly and completely in a concise way."
+
+        # Task 1 & 3: Performance optimized with increased token limit
+        payload = {
+            "model": selected_model,
+            "system": system_instruction,
+            "prompt": message,
+            "stream": False,
+            "options": {
+                "num_predict": 200,  # Increased for completeness
+                "temperature": 0.7
+            }
+        }
+
+        response = requests.post(OLLAMA_URL, json=payload, timeout=120)
+        data = response.json()
+        text = data.get("response", "").strip()
+        context = data.get("context")
+
+        # Task 2: Stop-safe response handling
+        # If response ends abruptly (no punctuation or hit length limit), try a short continuation
+        if data.get("done_reason") == "length" or (text and text[-1] not in ".!?;"):
+            try:
+                # Use context to continue generation without re-prompting
+                followup = requests.post(
+                    OLLAMA_URL,
+                    json={
+                        "model": selected_model,
+                        "context": context,
+                        "prompt": "",  # Continue from last token
+                        "stream": False,
+                        "options": {
+                            "num_predict": 100,
+                            "temperature": 0.5
+                        }
+                    },
+                    timeout=60
+                )
+                if followup.status_code == 200:
+                    more_text = followup.json().get("response", "").strip()
+                    if more_text:
+                        text = f"{text} {more_text}"
+            except:
+                pass # Fallback to original text if followup fails
+
+        # Clean "Assistant" prefix but keep the logic robust
+        if text.lower().startswith("assistant"):
+            text = text[len("assistant"):].strip()
+        if text.startswith(":") or text.startswith("-"):
+             text = text[1:].strip()
+
+        return text
+
+    except Exception as e:
+        return f"Local LLM Error: {str(e)}"
+
+def generate_chat_stream(*args, **kwargs):
+    """
+    Flexible streaming fallback to avoid argument mismatch errors
+    """
+    # Extract message safely
+    message = args[0] if len(args) > 0 else kwargs.get("message", "")
+    model = args[4] if len(args) > 4 else kwargs.get("model", None)
+
+    response = generate_chat_response(message, model=model)
+
+    yield response

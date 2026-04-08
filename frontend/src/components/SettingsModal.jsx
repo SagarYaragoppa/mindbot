@@ -39,14 +39,10 @@ export default function SettingsModal({ onClose, llmModel, setLlmModel, temperat
                 background: 'rgba(0,0,0,0.3)', color: 'white', border: '1px solid var(--border-color)', outline: 'none'
               }}
             >
-              <option value="llama3.1">Meta Llama 3.1 (Default)</option>
-              <option value="gemini-2.0-flash-001">Google Gemini 2.0 Flash (Cloud)</option>
-              <option value="gemini-1.5-flash">Google Gemini 1.5 Flash (Fastest)</option>
-              <option value="llama3">Llama 3 (Legacy)</option>
-              <option value="mistral">Mistral 7B</option>
-              <option value="phi3">Microsoft Phi-3</option>
-              <option value="deepseek-coder">DeepSeek Coder</option>
-              <option value="qwen2">Qwen 2 (Alibaba)</option>
+              <option value="phi3">Microsoft Phi-3 (Default)</option>
+              <option value="tinyllama">TinyLlama (Fastest)</option>
+              <option value="llama3:8b">Meta Llama 3 8B</option>
+              <option value="llava">LLaVA (Vision)</option>
             </select>
           </div>
 

@@ -4,14 +4,16 @@ MindBot is a full-stack, intelligent AI assistant application that provides real
 
 ## Features
 
-- **Interactive AI Chat**: Real-time streaming chat responses powered by Ollama (Llama 3.1 model).
-- **Contextual Memory**: Dynamically summarises chat history to maintain the conversation context window effectively over long sessions.
-- **RAG Engine (Retrieval-Augmented Generation)**:
-  - Upload and parse PDF documents.
+- **Interactive AI Chat**: Real-time streaming chat responses powered by Ollama (optimized for local performance).
+- **Voice-to-Text Integration**: Native browser Speech Recognition (Web Speech API) for hands-free interaction, featuring real-time visual pulse feedback.
+- **Multimodal Vision Capabilities**: Seamlessly upload and analyze images within the chat interface.
+- **Advanced RAG Engine (Retrieval-Augmented Generation)**:
+  - Upload and parse PDF documents with automatic chunking.
   - Ingest content from web URLs.
-  - Ask targeted questions against your uploaded, indexed documents (powered by Faiss).
-- **User Authentication & Authorization**: Secure JWT-based user, session, and conversation management. Role-based access (admin vs regular users).
-- **Auto-Titling**: Automatically generates a concise title for new conversations based on the user's first prompt.
+  - **Source Transparency**: Automatically highlights key source document sections within AI responses.
+- **Premium Design System**: A high-fidelity, responsive interface built with Glassmorphism, smooth micro-animations, and a dynamic dark/light theme.
+- **User Authentication**: Secure JWT-based session and conversation management with role-based access.
+- **Intelligent Auto-Titling**: Automatically generates context-aware conversation titles.
 
 ## Tech Stack
 

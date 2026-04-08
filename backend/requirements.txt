@@ -2,18 +2,20 @@ fastapi
 uvicorn
 sqlalchemy
 faiss-cpu
-langchain
-langchain-ollama
-langchain-community
 python-multipart
-SpeechRecognition
 pypdf
-langchain-google-genai
-google-generativeai
 python-dotenv
 slowapi
 python-jose[cryptography]
 passlib[bcrypt]
-python-multipart
 python-magic-bin; sys_platform == 'win32'
 python-magic; sys_platform != 'win32'
+requests
+numexpr
+faster-whisper
+langchain
+langchain-community
+langchain-huggingface
+langchain-text-splitters
+sentence-transformers
+beautifulsoup4

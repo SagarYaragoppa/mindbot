@@ -15,7 +15,7 @@ function App() {
   const [theme, setTheme] = useState(localStorage.getItem('mindbot-theme') || 'dark');
   
   // Settings Logic Arrays
-  const [llmModel, setLlmModel] = useState(localStorage.getItem('mindbot_model') || 'llama3.1');
+  const [llmModel, setLlmModel] = useState(localStorage.getItem('mindbot_model') || 'phi3');
   const [temperature, setTemperature] = useState(parseFloat(localStorage.getItem('mindbot_temp')) || 0.7);
 
   useEffect(() => {

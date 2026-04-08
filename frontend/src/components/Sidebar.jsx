@@ -22,14 +22,16 @@ export default function Sidebar({ setMode, setToken, activeConversationId, setAc
   const fetchConversations = async () => {
     try {
       const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/conversations`);
-      setConversations(res.data);
-      if (res.data.length > 0 && !activeConversationId) {
-        setActiveConversationId(res.data[0].id);
-      } else if (res.data.length === 0) {
+      const data = Array.isArray(res.data) ? res.data : (res.data?.conversations || []);
+      setConversations(data);
+      if (data.length > 0 && !activeConversationId) {
+        setActiveConversationId(data[0].id);
+      } else if (data.length === 0) {
         createNewChat();
       }
     } catch (err) {
       console.error(err);
+      setConversations([]);
     }
   };
 
@@ -84,6 +86,8 @@ export default function Sidebar({ setMode, setToken, activeConversationId, setAc
       e.target.value = null; // reset file input
     }
   };
+
+  const safeConversations = Array.isArray(conversations) ? conversations : [];
 
   return (
     <div className="sidebar glass-panel">
@@ -179,7 +183,7 @@ export default function Sidebar({ setMode, setToken, activeConversationId, setAc
         </div>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {conversations.map(conv => {
+          {safeConversations.map(conv => {
             const date = new Date(conv.created_at);
             const dateStr = `${date.getMonth()+1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
             
