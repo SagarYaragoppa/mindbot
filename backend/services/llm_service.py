@@ -17,8 +17,8 @@ def get_llm(model_name: str = "llama3.1", temperature: float = 0.7):
         print("ERROR: GOOGLE_API_KEY not found in environment for LLM Service.")
         raise ValueError("GOOGLE_API_KEY environment variable is required but not set.")
 
-    # Enforce using gemini-1.5-flash universally
-    gemini_model_name = "gemini-1.5-flash"
+    # Enforce using gemini-1.0-pro universally
+    gemini_model_name = "gemini-1.0-pro"
     return ChatGoogleGenerativeAI(model=gemini_model_name, temperature=temperature, google_api_key=api_key)
 
 def get_history(user_id: str):

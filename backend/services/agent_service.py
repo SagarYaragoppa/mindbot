@@ -69,8 +69,8 @@ def run_agent_task(task_instruction: str, model_name: str = "llama3.1", temperat
         
     print("SUCCESS: GOOGLE_API_KEY detected. Initializing Gemini agent...")
     from langchain_google_genai import ChatGoogleGenerativeAI
-    # Enforce gemini-1.5-flash universally
-    gemini_model_name = "gemini-1.5-flash"
+    # Enforce gemini-1.0-pro universally
+    gemini_model_name = "gemini-1.0-pro"
     dynamic_llm = ChatGoogleGenerativeAI(model=gemini_model_name, temperature=temperature, google_api_key=api_key)
     
     agent = None
