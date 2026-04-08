@@ -124,8 +124,6 @@ export default function ChatWindow({ mode, token, activeConversationId, llmModel
         
       } else if (mode === 'chat') {
         // STREAMING CHAT
-        setMessages(prev => [...prev, { role: 'bot', content: '' }]);
-        
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chat/stream`, {
           method: 'POST',
           headers: { 
@@ -138,11 +136,17 @@ export default function ChatWindow({ mode, token, activeConversationId, llmModel
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
         let done = false;
+        let isFirstChunk = true;
         
         while (!done) {
           const { value, done: doneReading } = await reader.read();
           done = doneReading;
           if (value) {
+            if (isFirstChunk) {
+               setLoading(false);
+               setMessages(prev => [...prev, { role: 'bot', content: '' }]);
+               isFirstChunk = false;
+            }
             const chunkValue = decoder.decode(value);
             setMessages(prev => {
               const newMessages = [...prev];
@@ -220,7 +224,7 @@ export default function ChatWindow({ mode, token, activeConversationId, llmModel
             )}
           </div>
         ))}
-        {loading && mode !== 'chat' && <div className="message bot">Thinking...</div>}
+        {loading && <div className="message bot" style={{ opacity: 0.7 }}>Thinking... (this might take a few seconds if the server is waking up)</div>}
         <div ref={endOfMessagesRef} />
       </div>
 

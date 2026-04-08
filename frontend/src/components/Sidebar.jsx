@@ -62,7 +62,7 @@ export default function Sidebar({ setMode, setToken, activeConversationId, setAc
     const formData = new FormData();
     formData.append('file', file);
     setUploading(true);
-    setUploadStatus('Uploading...');
+    setUploadStatus('Uploading & indexing (this may take a minute)...');
 
     try {
       const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/upload-doc`, formData, {
@@ -72,9 +72,16 @@ export default function Sidebar({ setMode, setToken, activeConversationId, setAc
       setUploadedFiles(prev => [...prev, file.name]);
     } catch (err) {
       console.error(err);
-      setUploadStatus('Upload failed');
+      if (err.response) {
+        setUploadStatus(`Upload failed: ${err.response.data.detail || err.message}`);
+      } else if (err.code === 'ERR_NETWORK') {
+        setUploadStatus('Upload request timed out but may be processing in the background.');
+      } else {
+        setUploadStatus('Upload failed unexpectedly.');
+      }
     } finally {
       setUploading(false);
+      e.target.value = null; // reset file input
     }
   };
 

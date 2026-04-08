@@ -69,6 +69,9 @@ async def upload_document(file: UploadFile = File(...), current_user: User = Dep
     except Exception as e:
         import traceback
         print("Error in /upload-doc:", traceback.format_exc())
+        import os
+        if os.path.exists(file_path):
+            os.remove(file_path)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/ask-rag")
