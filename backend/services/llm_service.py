@@ -11,16 +11,15 @@ load_dotenv()
 session_memories = {}
 
 def get_llm(model_name: str = "llama3.1", temperature: float = 0.7):
-    """Factory to get either Ollama or Google Gemini based on model name."""
-    if "gemini" in model_name.lower():
-        api_key = os.getenv("GOOGLE_API_KEY")
-        if not api_key:
-            raise ValueError("GOOGLE_API_KEY not found in environment variables")
-        return ChatGoogleGenerativeAI(model=model_name, temperature=temperature, google_api_key=api_key)
-    
-    # Default to Ollama
-    base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    return OllamaLLM(model=model_name, temperature=temperature, base_url=base_url)
+    """Factory to get Google Gemini API explicitly."""
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        print("ERROR: GOOGLE_API_KEY not found in environment for LLM Service.")
+        raise ValueError("GOOGLE_API_KEY environment variable is required but not set.")
+
+    # Enforce using gemini-1.5-flash to completely ignore Ollama overrides from frontend
+    gemini_model_name = "gemini-1.5-flash" if "gemini" not in model_name.lower() else model_name
+    return ChatGoogleGenerativeAI(model=gemini_model_name, temperature=temperature, google_api_key=api_key)
 
 def get_history(user_id: str):
     if user_id not in session_memories:
@@ -40,17 +39,24 @@ def generate_chat_stream(message: str, conversation_id: int, user_id: int, db: S
     prompt = f"System: You are MindBot, an intelligent and helpful AI assistant. Refer to the previous context if necessary.\nContext:\n{context}\n\nUser: {message}\nBot:"
     
     full_response = ""
-    # Standardize streaming across different LLM types
-    if hasattr(llm, "stream"):
-        for chunk in llm.stream(prompt):
-            content = chunk.content if hasattr(chunk, "content") else str(chunk)
-            full_response += content
-            yield content
-    else:
-        # Fallback for LLMs that don't support stream or have different interface
-        content = llm.invoke(prompt)
-        full_response = content.content if hasattr(content, "content") else str(content)
-        yield full_response
+    try:
+        # Standardize streaming across different LLM types
+        if hasattr(llm, "stream"):
+            for chunk in llm.stream([("user", prompt)]):
+                content = chunk.content if hasattr(chunk, "content") else str(chunk)
+                full_response += content
+                yield content
+        else:
+            # Fallback for LLMs that don't support stream or have different interface
+            content = llm.invoke([("user", prompt)])
+            full_response = content.content if hasattr(content, "content") else str(content)
+            yield full_response
+    except Exception as e:
+        import traceback
+        print("Error during streaming generation:", traceback.format_exc())
+        error_msg = f"\n[Backend Connection Error]: {str(e)}"
+        full_response += error_msg
+        yield error_msg
         
     # Persist the full response safely to the database
     chat_msg = ChatMessage(
