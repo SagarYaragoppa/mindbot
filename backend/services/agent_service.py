@@ -1,5 +1,5 @@
 import typing
-from langchain_ollama import ChatOllama
+
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_core.tools import Tool
 import numexpr as ne
@@ -62,13 +62,16 @@ def run_agent_task(task_instruction: str, model_name: str = "llama3.1", temperat
     """Executes the Agent action securely."""
     import os
     
-    if "gemini" in model_name.lower():
-        from langchain_google_genai import ChatGoogleGenerativeAI
-        api_key = os.getenv("GOOGLE_API_KEY")
-        dynamic_llm = ChatGoogleGenerativeAI(model=model_name, temperature=temperature, google_api_key=api_key)
-    else:
-        base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        dynamic_llm = ChatOllama(model=model_name, temperature=temperature, base_url=base_url)
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        print("ERROR: GOOGLE_API_KEY not found in environment in run_agent_task.")
+        return "Agent execution error: GOOGLE_API_KEY environment variable is required but not set."
+        
+    print("SUCCESS: GOOGLE_API_KEY detected. Initializing Gemini agent...")
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    # Enforce using gemini-1.5-flash or gemini-1.5-pro to ensure we hit Gemini API
+    gemini_model_name = "gemini-1.5-flash" if "gemini" not in model_name.lower() else model_name
+    dynamic_llm = ChatGoogleGenerativeAI(model=gemini_model_name, temperature=temperature, google_api_key=api_key)
     
     agent = None
     if HAS_REACT_AGENT:

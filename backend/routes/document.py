@@ -24,6 +24,8 @@ def list_docs_endpoint(current_user: User = Depends(get_current_user)):
         docs = list_documents()
         return {"documents": docs}
     except Exception as e:
+        import traceback
+        print("Error in /list-docs:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/delete-doc/{filename}")
@@ -36,6 +38,8 @@ def delete_doc_endpoint(filename: str, current_user: User = Depends(get_current_
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        print("Error in /delete-doc:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/upload-url")
@@ -45,6 +49,8 @@ def upload_url(request: URLRequest, current_user: User = Depends(get_current_use
         chunks = process_url(request.url)
         return {"status": "url parsed and indexed", "chunks": chunks}
     except Exception as e:
+        import traceback
+        print("Error in /upload-url:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/upload-doc")
@@ -61,6 +67,8 @@ async def upload_document(file: UploadFile = File(...), current_user: User = Dep
         chunks = process_pdf(file_path)
         return {"status": "uploaded and indexed", "chunks": chunks}
     except Exception as e:
+        import traceback
+        print("Error in /upload-doc:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/ask-rag")
@@ -69,4 +77,6 @@ def ask_rag_endpoint(request: RAGRequest, current_user: User = Depends(get_curre
         answer = query_rag(request.question)
         return {"reply": answer}
     except Exception as e:
+        import traceback
+        print("Error in /ask-rag:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))

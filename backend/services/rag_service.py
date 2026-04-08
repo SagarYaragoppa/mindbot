@@ -3,8 +3,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import WebBaseLoader
-from langchain_ollama import OllamaEmbeddings
-from langchain_ollama import OllamaLLM
+
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
@@ -14,17 +13,16 @@ FAISS_INDEX_PATH = os.path.join(DATA_DIR, "faiss_index")
 
 # Initialize embeddings and LLM dynamically to support deployed environments
 def get_embeddings_and_llm():
-    if os.getenv("GOOGLE_API_KEY"):
-        from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
-        emb = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-        llm_instance = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
-        return emb, llm_instance
-    else:
-        from langchain_ollama import OllamaEmbeddings, OllamaLLM
-        base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        emb = OllamaEmbeddings(model="llama3", base_url=base_url)
-        llm_instance = OllamaLLM(model="llama3", base_url=base_url)
-        return emb, llm_instance
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        print("ERROR: GOOGLE_API_KEY not found in environment variables. Gemini API requires it.")
+        raise ValueError("GOOGLE_API_KEY environment variable is required for Gemini API but not set.")
+        
+    print("SUCCESS: GOOGLE_API_KEY detected. Initializing Google Gemini LLM and Embeddings...")
+    from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
+    emb = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+    llm_instance = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
+    return emb, llm_instance
 
 embeddings, llm = get_embeddings_and_llm()
 
