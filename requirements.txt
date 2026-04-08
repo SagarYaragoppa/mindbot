@@ -12,8 +12,7 @@ langchain-ollama
 python-multipart
 SpeechRecognition
 pypdf
-langchain-google-genai>=1.0.0
-google-generativeai>=0.7.0
+
 python-dotenv
 slowapi
 python-jose[cryptography]

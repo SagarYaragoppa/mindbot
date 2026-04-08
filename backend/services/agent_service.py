@@ -59,19 +59,10 @@ if HAS_PYTHON_REPL:
     )
 
 def run_agent_task(task_instruction: str, model_name: str = "llama3.1", temperature: float = 0.7) -> str:
-    """Executes the Agent action securely."""
-    import os
-    
-    api_key = os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        print("ERROR: GOOGLE_API_KEY not found in environment in run_agent_task.")
-        return "Agent execution error: GOOGLE_API_KEY environment variable is required but not set."
-        
-    print("SUCCESS: GOOGLE_API_KEY detected. Initializing Gemini agent...")
-    from langchain_google_genai import ChatGoogleGenerativeAI
-    # Enforce gemini-1.5-flash universally
-    gemini_model_name = "gemini-1.5-flash"
-    dynamic_llm = ChatGoogleGenerativeAI(model=gemini_model_name, temperature=temperature, google_api_key=api_key)
+    """Executes the Agent action securely using Ollama."""
+    print("Initializing Ollama agent...")
+    from langchain_ollama import ChatOllama
+    dynamic_llm = ChatOllama(model=model_name, base_url="http://localhost:11434", temperature=temperature)
     
     agent = None
     if HAS_REACT_AGENT:

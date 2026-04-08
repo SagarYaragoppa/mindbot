@@ -1,5 +1,4 @@
-from langchain_ollama import OllamaLLM
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_ollama import ChatOllama
 import os
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
@@ -11,15 +10,8 @@ load_dotenv()
 session_memories = {}
 
 def get_llm(model_name: str = "llama3.1", temperature: float = 0.7):
-    """Factory to get Google Gemini API explicitly."""
-    api_key = os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        print("ERROR: GOOGLE_API_KEY not found in environment for LLM Service.")
-        raise ValueError("GOOGLE_API_KEY environment variable is required but not set.")
-
-    # Enforce using gemini-1.5-flash universally
-    gemini_model_name = "gemini-1.5-flash"
-    return ChatGoogleGenerativeAI(model=gemini_model_name, temperature=temperature, google_api_key=api_key)
+    """Factory to get Ollama API explicitly."""
+    return ChatOllama(model=model_name, base_url="http://localhost:11434", temperature=temperature)
 
 def get_history(user_id: str):
     if user_id not in session_memories:

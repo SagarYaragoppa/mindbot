@@ -11,17 +11,12 @@ from langchain_core.output_parsers import StrOutputParser
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
 FAISS_INDEX_PATH = os.path.join(DATA_DIR, "faiss_index")
 
-# Initialize embeddings and LLM dynamically to support deployed environments
+# Initialize embeddings and LLM locally
 def get_embeddings_and_llm():
-    api_key = os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        print("ERROR: GOOGLE_API_KEY not found in environment variables. Gemini API requires it.")
-        raise ValueError("GOOGLE_API_KEY environment variable is required for Gemini API but not set.")
-        
-    print("SUCCESS: GOOGLE_API_KEY detected. Initializing Google Gemini LLM and Embeddings...")
-    from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
-    emb = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-    llm_instance = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
+    print("Initializing Ollama LLM and Embeddings...")
+    from langchain_ollama import OllamaEmbeddings, ChatOllama
+    emb = OllamaEmbeddings(model="llama3.1", base_url="http://localhost:11434")
+    llm_instance = ChatOllama(model="llama3.1", base_url="http://localhost:11434", temperature=0)
     return emb, llm_instance
 
 embeddings, llm = get_embeddings_and_llm()
