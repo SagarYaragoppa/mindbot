@@ -60,7 +60,15 @@ if HAS_PYTHON_REPL:
 
 def run_agent_task(task_instruction: str, model_name: str = "llama3.1", temperature: float = 0.7) -> str:
     """Executes the Agent action securely."""
-    dynamic_llm = ChatOllama(model=model_name, temperature=temperature, base_url="http://localhost:11434")
+    import os
+    
+    if "gemini" in model_name.lower():
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        api_key = os.getenv("GOOGLE_API_KEY")
+        dynamic_llm = ChatGoogleGenerativeAI(model=model_name, temperature=temperature, google_api_key=api_key)
+    else:
+        base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        dynamic_llm = ChatOllama(model=model_name, temperature=temperature, base_url=base_url)
     
     agent = None
     if HAS_REACT_AGENT:

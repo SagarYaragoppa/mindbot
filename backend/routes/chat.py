@@ -10,9 +10,11 @@ from backend.core.security import limiter
 
 router = APIRouter()
 
+from typing import Optional
+
 class ChatRequest(BaseModel):
     message: str
-    conversation_id: int
+    conversation_id: Optional[int] = None
     model: str = "llama3.1"
     temperature: float = 0.7
 
@@ -44,12 +46,20 @@ def get_conversation_messages(conversation_id: int, db: Session = Depends(get_db
 @router.post("/chat", response_model=ChatResponse)
 def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     try:
+        conversation_id = request.conversation_id
+        if conversation_id is None:
+            conv = Conversation(user_id=current_user.id, title="New Chat")
+            db.add(conv)
+            db.commit()
+            db.refresh(conv)
+            conversation_id = conv.id
+
         # Generate reply using Ollama
         reply = generate_chat_response(request.message)
         
         # Save to DB
         chat_msg = ChatMessage(
-            conversation_id=request.conversation_id,
+            conversation_id=conversation_id,
             user_id=current_user.id,
             message=request.message,
             response=reply
@@ -73,8 +83,17 @@ from fastapi.responses import StreamingResponse
 async def chat_stream_endpoint(request: Request, payload: ChatRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     try:
         from backend.services.llm_service import generate_chat_stream
+        
+        conversation_id = payload.conversation_id
+        if conversation_id is None:
+            conv = Conversation(user_id=current_user.id, title="New Chat")
+            db.add(conv)
+            db.commit()
+            db.refresh(conv)
+            conversation_id = conv.id
+            
         return StreamingResponse(
-            generate_chat_stream(payload.message, payload.conversation_id, current_user.id, db, payload.model, payload.temperature), 
+            generate_chat_stream(payload.message, conversation_id, current_user.id, db, payload.model, payload.temperature), 
             media_type="text/event-stream"
         )
     except Exception as e:
