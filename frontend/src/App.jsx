@@ -23,11 +23,16 @@ function App() {
     localStorage.setItem('mindbot-theme', theme);
   }, [theme]);
 
+  if (token) {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    localStorage.setItem('token', token);
+  } else {
+    delete axios.defaults.headers.common['Authorization'];
+    localStorage.removeItem('token');
+  }
+
   useEffect(() => {
     if (token) {
-      localStorage.setItem('token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
       // Verify token and explicitly fetch Role escalation capabilities
       axios.get(`${import.meta.env.VITE_API_BASE_URL}/auth/me`)
         .then(res => setIsAdmin(res.data.is_admin))
@@ -36,8 +41,6 @@ function App() {
           setToken(null);
         });
     } else {
-      localStorage.removeItem('token');
-      delete axios.defaults.headers.common['Authorization'];
       setIsAdmin(false);
     }
   }, [token]);

@@ -16,18 +16,18 @@ init_db()
 
 app = FastAPI(title="MindBot API")
 
+# Setup CORS to allow React frontend
+origins = os.getenv("ALLOW_ORIGINS", "http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174,https://mindbot-gold.vercel.app").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://mindbot-gold.vercel.app"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
-# Setup CORS to allow React frontend
-origins = os.getenv("ALLOW_ORIGINS", "http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174").split(",")
 
 
 @app.get("/")
