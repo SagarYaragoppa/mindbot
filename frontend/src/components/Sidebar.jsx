@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Upload, FileText, Settings, Bot, Cpu, LogOut, Trash2, PlusCircle, MessageSquare, ShieldAlert, Sun, Moon } from 'lucide-react';
 
-export default function Sidebar({ setMode, setToken, activeConversationId, setActiveConversationId, isAdmin, onOpenSettings, theme, setTheme }) {
+export default function Sidebar({ mode, setMode, setToken, activeConversationId, setActiveConversationId, isAdmin, onOpenSettings, theme, setTheme }) {
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -106,18 +106,34 @@ export default function Sidebar({ setMode, setToken, activeConversationId, setAc
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <h3>Modes</h3>
-        <button className="btn btn-secondary" onClick={() => setMode('chat')}>
+        <button 
+          className={`btn ${mode === 'chat' ? '' : 'btn-secondary'}`} 
+          onClick={() => setMode('chat')}
+          style={mode === 'chat' ? { background: 'var(--accent-color)' } : {}}
+        >
           <Bot size={18} /> General Chat
         </button>
-        <button className="btn btn-secondary" onClick={() => setMode('rag')}>
+        <button 
+          className={`btn ${mode === 'rag' ? '' : 'btn-secondary'}`} 
+          onClick={() => setMode('rag')}
+          style={mode === 'rag' ? { background: '#10b981' } : {}}
+        >
           <FileText size={18} /> Document Q&A
         </button>
-        <button className="btn btn-secondary" onClick={() => setMode('agent')}>
+        <button 
+          className={`btn ${mode === 'agent' ? '' : 'btn-secondary'}`} 
+          onClick={() => setMode('agent')}
+          style={mode === 'agent' ? { background: '#8b5cf6' } : {}}
+        >
           <Cpu size={18} /> Agent Tasks
         </button>
         {isAdmin && (
-          <button className="btn btn-secondary" onClick={() => setMode('admin')} style={{ border: '1px solid var(--accent-color)' }}>
-            <ShieldAlert size={18} color="var(--accent-color)" /> Admin Panel
+          <button 
+            className={`btn ${mode === 'admin' ? '' : 'btn-secondary'}`} 
+            onClick={() => setMode('admin')} 
+            style={{ border: mode === 'admin' ? '1px solid #fff' : '1px solid var(--accent-color)' }}
+          >
+            <ShieldAlert size={18} color={mode === 'admin' ? '#fff' : 'var(--accent-color)'} /> Admin Panel
           </button>
         )}
       </div>

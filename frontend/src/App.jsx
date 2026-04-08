@@ -52,6 +52,7 @@ function App() {
   return (
     <div className="app-container">
       <Sidebar 
+        mode={mode}
         setMode={setMode} 
         setToken={setToken} 
         activeConversationId={activeConversationId} 

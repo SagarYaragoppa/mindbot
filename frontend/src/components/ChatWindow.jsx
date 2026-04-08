@@ -1,10 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import { Send, Mic, Square, Image as ImageIcon } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import GeneralChatView from './modes/GeneralChatView';
+import RagChatView from './modes/RagChatView';
+import AgentChatView from './modes/AgentChatView';
 
 export default function ChatWindow({ mode, token, activeConversationId, llmModel, temperature }) {
   const [messages, setMessages] = useState([
@@ -92,7 +90,7 @@ export default function ChatWindow({ mode, token, activeConversationId, llmModel
 
   const toggleRecording = () => {
     if (!isSpeechSupported) return;
-    if (loading) return; // Prevent mic use while AI is thinking
+    if (loading) return;
 
     if (recording) {
       recognitionRef.current.stop();
@@ -113,13 +111,11 @@ export default function ChatWindow({ mode, token, activeConversationId, llmModel
     if (!textToSend && !imageFile) return;
     if (loading) return;
 
-    // LIGHTWEIGHT CHAT MEMORY (Frontend Only)
-    // Prepend last 3 messages to current prompt for context
     let memoryPrompt = "";
     try {
       const recentMessages = messages
         .filter(m => m.content !== 'Thinking...' && m.content !== 'Hello! How can I help you today?')
-        .slice(-6); // last 3 pairs
+        .slice(-6); 
       
       if (recentMessages.length > 0) {
         memoryPrompt = "Previous context:\n" + 
@@ -132,13 +128,10 @@ export default function ChatWindow({ mode, token, activeConversationId, llmModel
     }
 
     const finalPayloadText = memoryPrompt + textToSend;
-    
-    // Optimistic UI for User
     let displayMsg = textToSend;
     if (imageFile && textToSend) displayMsg = `[🖼️ Image attached]: ${textToSend}`;
     else if (imageFile) displayMsg = `[🖼️ Image attached]`;
 
-    // Immediately add user message AND Thinking... placeholder
     if (!userTextOverride) {
       setMessages(prev => [...prev, { role: 'user', content: displayMsg }, { role: 'bot', content: 'Thinking...' }]);
     } else {
@@ -148,7 +141,6 @@ export default function ChatWindow({ mode, token, activeConversationId, llmModel
     setInput('');
     setLoading(true);
 
-    // Timeout protection: 15 seconds
     const timeoutId = setTimeout(() => {
       setMessages(prev => {
         const lastMsg = prev[prev.length - 1];
@@ -164,7 +156,6 @@ export default function ChatWindow({ mode, token, activeConversationId, llmModel
 
     try {
       if (imageFile) {
-        // VISION MODE
         const formData = new FormData();
         formData.append('file', imageFile);
         if (textToSend) formData.append('prompt', textToSend);
@@ -183,7 +174,6 @@ export default function ChatWindow({ mode, token, activeConversationId, llmModel
         setImageFile(null);
         
       } else if (mode === 'chat') {
-        // STREAMING CHAT
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chat/stream`, {
           method: 'POST',
           headers: { 
@@ -227,9 +217,7 @@ export default function ChatWindow({ mode, token, activeConversationId, llmModel
           }
         }
       } else {
-        // RAG or AGENT modes
         let endpoint = `${import.meta.env.VITE_API_BASE_URL}/ask-rag`;
-        // Backend expects 'message' field in /ask-rag
         let payload = { message: textToSend };
 
         if (mode === 'agent') {
@@ -239,14 +227,8 @@ export default function ChatWindow({ mode, token, activeConversationId, llmModel
           payload = { message: finalPayloadText };
         }
         
-        console.log(`[${mode.toUpperCase()}] Request:`, endpoint, payload);
-        
         const res = await axios.post(endpoint, payload);
         clearTimeout(timeoutId);
-        
-        console.log(`[${mode.toUpperCase()}] Response:`, res.data);
-
-        // Robustly extract response from various possible fields
         const reply = res.data.response || res.data.reply || res.data.message || res.data.answer;
         
         if (reply) {
@@ -260,7 +242,6 @@ export default function ChatWindow({ mode, token, activeConversationId, llmModel
             return newMessages;
           });
         } else {
-          console.warn("No recognized content field in response:", res.data);
           setMessages(prev => {
             const newMessages = [...prev];
             const errorMsg = "Error: Received empty response from the server.";
@@ -281,7 +262,7 @@ export default function ChatWindow({ mode, token, activeConversationId, llmModel
         const errorMsg = 'Something went wrong. Please try again.';
         if (newMessages[newMessages.length - 1]?.content === 'Thinking...') {
           newMessages[newMessages.length - 1] = { role: 'bot', content: errorMsg };
-        } else if (newMessages[newMessages.length - 1]?.content !== 'Response taking too long. Try again.') {
+        } else {
           newMessages.push({ role: 'bot', content: errorMsg });
         }
         return newMessages;
@@ -292,152 +273,17 @@ export default function ChatWindow({ mode, token, activeConversationId, llmModel
     }
   };
 
-  return (
-    <div className="main-chat glass-panel">
-      <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', background: 'rgba(0,0,0,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {hasDocs ? (
-            <><span title="RAG Active">📄</span> RAG Mode (Using Document)</>
-          ) : (
-            <><span title="Standard Chat">🟢</span> Chat Mode</>
-          )}
-        </h3>
-      </div>
-      
-      <div className="chat-history">
-        {messages.map((msg, idx) => {
-          const isBot = msg.role === 'bot';
-          let mainContent = msg.content;
-          let sourceContent = null;
+  const commonProps = {
+    messages, input, setInput, handleSend, loading, recording, 
+    toggleRecording, imageFile, setImageFile, isSpeechSupported, 
+    endOfMessagesRef, hasDocs
+  };
 
-          if (isBot && mainContent.includes('\n\n---\nSources:')) {
-            const parts = mainContent.split('\n\n---\nSources:');
-            mainContent = parts[0];
-            sourceContent = parts[1];
-          }
-
-          // Keyword Highlighting Logic
-          const renderWithHighlights = (text) => {
-            if (!isBot || !sourceContent) return text;
-            const prevUserMsg = messages[idx - 1];
-            if (!prevUserMsg || (prevUserMsg.role !== 'user' && idx > 0)) {
-               // If there's no immediately preceding user msg, look for the most recent one
-               const lastUser = [...messages.slice(0, idx)].reverse().find(m => m.role === 'user');
-               if (!lastUser) return <div style={{ whiteSpace: 'pre-wrap' }}>{text}</div>;
-            }
-            
-            const lastUserMsg = [...messages.slice(0, idx)].reverse().find(m => m.role === 'user');
-            const query = lastUserMsg ? lastUserMsg.content.toLowerCase() : "";
-            const words = query.split(/\s+/).filter(w => w.length > 3);
-            
-            if (words.length === 0) return <div style={{ whiteSpace: 'pre-wrap' }}>{text}</div>;
-
-            // Simple highlighting for the Sources section
-            let highlighted = text;
-            words.forEach(word => {
-              const regex = new RegExp(`(${word})`, 'gi');
-              highlighted = highlighted.replace(regex, '<span style="background: rgba(255, 255, 0, 0.2); color: #fff; border-bottom: 1px solid #ffbb00;">$1</span>');
-            });
-            return <div style={{ whiteSpace: 'pre-wrap' }} dangerouslySetInnerHTML={{ __html: highlighted }} />;
-          };
-
-          return (
-            <div key={idx} className={`message ${msg.role}`}>
-              {isBot ? (
-                <>
-                  <ReactMarkdown 
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      code({node, inline, className, children, ...props}) {
-                        const match = /language-(\w+)/.exec(className || '');
-                        return !inline && match ? (
-                          <div style={{ position: 'relative', marginTop: '1rem', marginBottom: '1rem', borderRadius: '8px', overflow: 'hidden' }}>
-                            <div style={{ background: '#1e1e1e', padding: '4px 12px', fontSize: '0.75rem', color: '#888', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333' }}>
-                              <span>{match[1]}</span>
-                              <button 
-                                onClick={() => navigator.clipboard.writeText(String(children))} 
-                                style={{ background: 'transparent', border: 'none', color: '#3b82f6', cursor: 'pointer' }}
-                                title="Copy to Clipboard"
-                              >
-                                Copy Code
-                              </button>
-                            </div>
-                            <SyntaxHighlighter style={vscDarkPlus} language={match[1]} PreTag="div" customStyle={{ margin: 0 }} {...props}>
-                              {String(children).replace(/\n$/, '')}
-                            </SyntaxHighlighter>
-                          </div>
-                        ) : (
-                          <code className={className} style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 4px', borderRadius: '4px' }} {...props}>
-                            {children}
-                          </code>
-                        )
-                      }
-                    }}
-                  >
-                    {mainContent}
-                  </ReactMarkdown>
-                  
-                  {sourceContent && (
-                    <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed rgba(255,255,255,0.1)', fontSize: '0.8rem', color: '#aaa', fontStyle: 'italic' }}>
-                      <div style={{ fontWeight: 'bold', marginBottom: '4px', color: '#888' }}>Sources:</div>
-                      {renderWithHighlights(sourceContent)}
-                    </div>
-                  )}
-                </>
-              ) : (
-                msg.content
-              )}
-            </div>
-          );
-        })}
-        {/* Loading div removed as Thinking... is now a message object */}
-        <div ref={endOfMessagesRef} />
-      </div>
-
-      <div className="chat-input-area" style={{ position: 'relative' }}>
-        {imageFile && (
-          <div style={{ position: 'absolute', top: '-40px', left: '10px', background: 'var(--accent-color)', padding: '5px 12px', borderRadius: '8px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', color: '#fff' }}>
-            <ImageIcon size={14} /> {imageFile.name}
-            <button onClick={() => setImageFile(null)} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: '0 4px', fontWeight: 'bold' }}>✕</button>
-          </div>
-        )}
-        
-        {recording && <div className="listening-indicator">Listening...</div>}
-
-        {isSpeechSupported && (
-          <button 
-            className={`btn ${recording ? 'pulse-animation' : 'btn-secondary'}`} 
-            style={{ padding: '0.75rem' }} 
-            title={recording ? "Stop Recording" : "Voice Input"} 
-            onClick={toggleRecording}
-            disabled={loading}
-          >
-            {recording ? <Square size={20} /> : <Mic size={20} />}
-          </button>
-        )}
-        
-        <label className="btn btn-secondary" style={{ padding: '0.75rem', cursor: 'pointer' }} title="Attach Image">
-          <ImageIcon size={20} />
-          <input 
-            type="file" 
-            accept="image/*" 
-            style={{ display: 'none' }} 
-            onChange={(e) => setImageFile(e.target.files[0])}
-          />
-        </label>
-
-        <input 
-          type="text" 
-          placeholder={recording ? "Recording..." : "Type a message..." }
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          disabled={recording}
-        />
-        <button className="btn" onClick={() => handleSend()} disabled={loading || recording}>
-          <Send size={18} /> Send
-        </button>
-      </div>
-    </div>
-  );
+  if (mode === 'rag') {
+    return <RagChatView {...commonProps} />;
+  } else if (mode === 'agent') {
+    return <AgentChatView {...commonProps} />;
+  } else {
+    return <GeneralChatView {...commonProps} />;
+  }
 }
