@@ -12,9 +12,21 @@ from langchain_core.output_parsers import StrOutputParser
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
 FAISS_INDEX_PATH = os.path.join(DATA_DIR, "faiss_index")
 
-# Initialize embeddings and LLM
-embeddings = OllamaEmbeddings(model="llama3", base_url="http://localhost:11434")
-llm = OllamaLLM(model="llama3", base_url="http://localhost:11434")
+# Initialize embeddings and LLM dynamically to support deployed environments
+def get_embeddings_and_llm():
+    if os.getenv("GOOGLE_API_KEY"):
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
+        emb = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        llm_instance = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
+        return emb, llm_instance
+    else:
+        from langchain_ollama import OllamaEmbeddings, OllamaLLM
+        base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        emb = OllamaEmbeddings(model="llama3", base_url=base_url)
+        llm_instance = OllamaLLM(model="llama3", base_url=base_url)
+        return emb, llm_instance
+
+embeddings, llm = get_embeddings_and_llm()
 
 # Using basic QA prompt for RAG
 prompt = ChatPromptTemplate.from_template(
