@@ -44,8 +44,8 @@ async def global_exception_handler(request, exc):
     )
 
 @app.get("/")
-def read_root():
-    return {"message": "MindBot API is running"}
+def root():
+    return {"status": "ok", "message": "MindBot backend running"}
 
 from backend.routes import chat, document, auth, admin
 
