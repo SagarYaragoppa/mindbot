@@ -35,26 +35,27 @@ export default function AuthView({ setToken }) {
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', width: '100vw' }}>
-      <div className="glass-panel" style={{ width: '400px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        <h2 style={{ textAlign: 'center', marginBottom: '1rem' }}>
+  return (
+    <div className="flex justify-center items-center h-screen w-screen p-4">
+      <div className="glass-panel w-full max-w-sm p-6 sm:p-10 flex flex-col gap-6 shadow-2xl">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center tracking-tight">
           {isLogin ? 'Welcome Back' : 'Create Account'}
         </h2>
         
         {error && (
-          <div style={{ padding: '0.75rem', background: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', borderRadius: '8px', fontSize: '0.9rem', textAlign: 'center' }}>
+          <div className="p-3 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-sm text-center animate-in fade-in zoom-in-95">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input 
             type="text" 
             placeholder="Username" 
             value={username} 
             onChange={(e) => setUsername(e.target.value)}
             required
-            style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-color)' }}
+            className="w-full p-3.5 rounded-xl border border-white/10 bg-black/20 text-white focus:border-accent-color transition-colors outline-none text-base"
           />
           <input 
             type="password" 
@@ -62,14 +63,21 @@ export default function AuthView({ setToken }) {
             value={password} 
             onChange={(e) => setPassword(e.target.value)}
             required
-            style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-color)' }}
+            className="w-full p-3.5 rounded-xl border border-white/10 bg-black/20 text-white focus:border-accent-color transition-colors outline-none text-base"
           />
-          <button type="submit" className="btn" disabled={loading} style={{ padding: '0.75rem', justifyContent: 'center', marginTop: '0.5rem' }}>
-            {isLogin ? <><LogIn size={18} /> Login</> : <><UserPlus size={18} /> Register</>}
+          <button 
+            type="submit" 
+            className="btn w-full py-3.5 flex justify-center items-center gap-2 font-bold shadow-lg shadow-accent-color/20 mt-2" 
+            disabled={loading}
+          >
+            {loading ? 'Processing...' : isLogin ? <><LogIn size={20} /> Login</> : <><UserPlus size={20} /> Register</>}
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', cursor: 'pointer', marginTop: '1rem' }} onClick={() => { setIsLogin(!isLogin); setError(''); }}>
+        <p 
+          className="text-center text-sm text-text-secondary cursor-pointer hover:text-white transition-colors" 
+          onClick={() => { setIsLogin(!isLogin); setError(''); }}
+        >
           {isLogin ? "Don't have an account? Register" : "Already have an account? Login"}
         </p>
       </div>

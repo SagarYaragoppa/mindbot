@@ -37,78 +37,81 @@ export default function AdminDashboard({ token }) {
   };
 
   return (
-    <div className="main-chat glass-panel" style={{ padding: '2rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div className="main-chat glass-panel flex flex-col gap-8 p-4 sm:p-8 overflow-y-auto h-full">
       
       <div>
-        <h2 style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: 'var(--accent-color)', marginBottom: '1rem' }}>
+        <h2 className="flex items-center gap-3 text-xl sm:text-2xl font-bold text-accent-color mb-6">
           <ShieldAlert size={28} /> Advanced Server Telemetry
         </h2>
-        {loadingError && <p style={{ color: '#ef4444' }}>{loadingError}</p>}
+        {loadingError && <p className="text-red-400 mb-4 bg-red-400/10 p-3 rounded-lg border border-red-400/20 text-sm">{loadingError}</p>}
         
-        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-          <div className="glass-panel" style={{ flex: 1, minWidth: '200px', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1.5rem', background: 'rgba(5b, 130, 246, 0.1)' }}>
-            <Users size={32} style={{ marginBottom: '1rem', color: '#60a5fa' }} />
-            <span style={{ fontSize: '2rem', fontWeight: 'bold' }}>{stats.total_users}</span>
-            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Total Users</span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+          <div className="glass-panel flex flex-col items-center p-6 bg-blue-500/10 border-blue-500/20">
+            <Users size={32} className="text-blue-400 mb-4" />
+            <span className="text-3xl font-bold mb-1">{stats.total_users}</span>
+            <span className="text-sm text-text-secondary">Total Users</span>
           </div>
-          <div className="glass-panel" style={{ flex: 1, minWidth: '200px', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1.5rem', background: 'rgba(16, 185, 129, 0.1)' }}>
-            <Database size={32} style={{ marginBottom: '1rem', color: '#34d399' }} />
-            <span style={{ fontSize: '2rem', fontWeight: 'bold' }}>{stats.total_conversations}</span>
-            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Total Conversations</span>
+          <div className="glass-panel flex flex-col items-center p-6 bg-emerald-500/10 border-emerald-500/20">
+            <Database size={32} className="text-emerald-400 mb-4" />
+            <span className="text-3xl font-bold mb-1">{stats.total_conversations}</span>
+            <span className="text-sm text-text-secondary">Total Conversations</span>
           </div>
-          <div className="glass-panel" style={{ flex: 1, minWidth: '200px', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1.5rem', background: 'rgba(245, 158, 11, 0.1)' }}>
-            <MessageSquare size={32} style={{ marginBottom: '1rem', color: '#fbbf24' }} />
-            <span style={{ fontSize: '2rem', fontWeight: 'bold' }}>{stats.total_messages}</span>
-            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Total Messages</span>
+          <div className="glass-panel flex flex-col items-center p-6 bg-amber-500/10 border-amber-500/20">
+            <MessageSquare size={32} className="text-amber-400 mb-4" />
+            <span className="text-3xl font-bold mb-1">{stats.total_messages}</span>
+            <span className="text-sm text-text-secondary">Total Messages</span>
           </div>
         </div>
       </div>
 
       <div>
-        <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <h3 className="flex items-center gap-2 text-lg font-bold mb-4">
           <Key size={20} /> User Moderation Console
         </h3>
-        <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)' }}>Global ID</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)' }}>Username</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)' }}>System Role</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  <td style={{ padding: '1rem' }}>{u.id}</td>
-                  <td style={{ padding: '1rem', fontWeight: 'bold', color: u.is_admin ? 'var(--accent-color)' : 'inherit' }}>{u.username}</td>
-                  <td style={{ padding: '1rem' }}>
-                    {u.is_admin ? (
-                      <span style={{ background: 'rgba(59, 130, 246, 0.2)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', color: '#93c5fd' }}>Super Admin</span>
-                    ) : (
-                      <span style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem' }}>Standard User</span>
-                    )}
-                  </td>
-                  <td style={{ padding: '1rem', textAlign: 'center' }}>
-                    {!u.is_admin && (
-                      <button 
-                        className="btn" 
-                        onClick={() => handleDeleteUser(u.id)}
-                        style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)', padding: '0.5rem' }}
-                        title="Ban and Wipe User from Database"
-                      >
-                        <Trash2 size={16} /> Delete
-                      </button>
-                    )}
-                  </td>
+        <div className="glass-panel overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-white/5 border-b border-border-color">
+                  <th className="p-4 text-xs font-bold uppercase tracking-wider text-text-secondary">Global ID</th>
+                  <th className="p-4 text-xs font-bold uppercase tracking-wider text-text-secondary">Username</th>
+                  <th className="p-4 text-xs font-bold uppercase tracking-wider text-text-secondary">System Role</th>
+                  <th className="p-4 text-xs font-bold uppercase tracking-wider text-text-secondary text-center">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {users.length === 0 && <p style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>No active users detected.</p>}
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                    <td className="p-4 text-sm font-mono opacity-60">#{u.id}</td>
+                    <td className={`p-4 text-sm font-bold ${u.is_admin ? 'text-accent-color' : ''}`}>{u.username}</td>
+                    <td className="p-4">
+                      {u.is_admin ? (
+                        <span className="bg-blue-500/20 text-blue-300 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border border-blue-500/30">Super Admin</span>
+                      ) : (
+                        <span className="bg-white/10 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border border-white/5">Standard User</span>
+                      )}
+                    </td>
+                    <td className="p-4 text-center">
+                      {!u.is_admin && (
+                        <button 
+                          className="px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-xs font-medium hover:bg-red-500/20 transition-all inline-flex items-center gap-2" 
+                          onClick={() => handleDeleteUser(u.id)}
+                          title="Ban and Wipe User from Database"
+                        >
+                          <Trash2 size={14} /> Delete
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {users.length === 0 && <p className="p-10 text-center text-text-secondary italic">No active users detected.</p>}
         </div>
       </div>
     </div>
+  );
+}
   );
 }

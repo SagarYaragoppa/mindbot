@@ -16,7 +16,7 @@ function App() {
   
   // Settings Logic Arrays
   const [temperature, setTemperature] = useState(parseFloat(localStorage.getItem('mindbot_temp')) || 0.7);
-  const [llmModel, setLlmModel] = useState(localStorage.getItem('mindbot_model') || 'mistral-small');
+  const [llmModel, setLlmModel] = useState(localStorage.getItem('mindbot_model') || 'mistral');
   const [provider, setProvider] = useState(localStorage.getItem('mindbot_provider') || 'mistral');
 
   useEffect(() => {

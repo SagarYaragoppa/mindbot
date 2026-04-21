@@ -64,9 +64,16 @@ body {
   width: 100%;
   height: 100%;
   display: flex;
-  padding: 1.5rem;
-  gap: 1.5rem;
+  padding: 1rem;
+  gap: 1rem;
   box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  #root {
+    padding: 1.5rem;
+    gap: 1.5rem;
+  }
 }
 
 .glass-panel {
@@ -132,18 +139,38 @@ input[type="text"]:focus {
 /* Layout */
 .app-container {
   display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
-  gap: 1.5rem;
+  gap: 1rem;
+  overflow: hidden;
+}
+
+@media (min-width: 1024px) {
+  .app-container {
+    flex-direction: row;
+    gap: 1.5rem;
+  }
 }
 
 .sidebar {
-  width: 300px;
-  padding: 1.5rem;
+  width: 100%;
+  max-height: 40vh;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1rem;
   flex-shrink: 0;
+  overflow-y: auto;
+}
+
+@media (min-width: 1024px) {
+  .sidebar {
+    width: 300px;
+    max-height: none;
+    padding: 1.5rem;
+    gap: 2rem;
+  }
 }
 
 .main-chat {
