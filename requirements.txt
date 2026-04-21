@@ -5,6 +5,7 @@ numexpr
 langchain>=0.2.0
 langchain-core>=0.2.0
 langchain-community>=0.2.0
+langchain-mistralai
 duckduckgo-search
 mistralai
 python-multipart

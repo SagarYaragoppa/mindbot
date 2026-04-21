@@ -13,5 +13,6 @@ requests
 numexpr
 langchain
 langchain-community
+langchain-mistralai
 langchain-text-splitters
 beautifulsoup4

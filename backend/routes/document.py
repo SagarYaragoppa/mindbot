@@ -25,7 +25,7 @@ MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
 @router.post("/upload-doc")
 def upload_document(
     file: UploadFile = File(...),
-    model: str = "phi3",
+    model: str = "mistral-small-latest",
     provider: str = "mistral",
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),  # 🔒 Auth guard
@@ -119,7 +119,7 @@ def delete_document(
         os.remove(file_path)
         safe_print(f"Deleted file: {sanitize_text(file_path)}")
 
-        # Reset/Clear FAISS index to keep it consistent
+        # Reset/Clear index to keep it consistent
         clear_index()
 
         return {"message": "Document deleted successfully"}
