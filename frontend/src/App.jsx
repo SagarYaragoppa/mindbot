@@ -15,8 +15,9 @@ function App() {
   const [theme, setTheme] = useState(localStorage.getItem('mindbot-theme') || 'dark');
   
   // Settings Logic Arrays
-  const [llmModel, setLlmModel] = useState(localStorage.getItem('mindbot_model') || 'phi3');
   const [temperature, setTemperature] = useState(parseFloat(localStorage.getItem('mindbot_temp')) || 0.7);
+  const [llmModel, setLlmModel] = useState(localStorage.getItem('mindbot_model') || 'mistral-small');
+  const [provider, setProvider] = useState(localStorage.getItem('mindbot_provider') || 'mistral');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -67,21 +68,25 @@ function App() {
       ) : (
         <ChatWindow 
           mode={mode} 
+          setMode={setMode}
           token={token} 
           activeConversationId={activeConversationId} 
           setActiveConversationId={setActiveConversationId} 
-          llmModel={llmModel}
           temperature={temperature}
+          llmModel={llmModel}
+          provider={provider}
         />
       )}
       
       {showSettings && (
         <SettingsModal 
           onClose={() => setShowSettings(false)} 
-          llmModel={llmModel} 
-          setLlmModel={setLlmModel}
           temperature={temperature}
           setTemperature={setTemperature}
+          llmModel={llmModel}
+          setLlmModel={setLlmModel}
+          provider={provider}
+          setProvider={setProvider}
         />
       )}
     </div>

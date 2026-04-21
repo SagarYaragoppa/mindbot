@@ -1,12 +1,30 @@
 import React from 'react';
-import { X, Settings, Cpu, Thermometer } from 'lucide-react';
+import { X, Settings, Thermometer, Cloud } from 'lucide-react';
 
-export default function SettingsModal({ onClose, llmModel, setLlmModel, temperature, setTemperature }) {
+export default function SettingsModal({ onClose, temperature, setTemperature, llmModel, setLlmModel, provider, setProvider }) {
   
   const handleSave = () => {
-    localStorage.setItem('mindbot_model', llmModel);
     localStorage.setItem('mindbot_temp', temperature);
+    localStorage.setItem('mindbot_model', llmModel);
+    localStorage.setItem('mindbot_provider', provider);
     onClose();
+  };
+
+  const models = [
+    { name: 'Mistral Small', id: 'mistral-small', provider: 'mistral', category: 'Cloud' },
+    { name: 'Microsoft Phi-3', id: 'phi3', provider: 'local', category: 'Local' },
+    { name: 'TinyLlama', id: 'tinyllama', provider: 'local', category: 'Local' },
+    { name: 'LLaMA 3', id: 'llama3', provider: 'local', category: 'Local' },
+    { name: 'LLaVA (Vision)', id: 'llava', provider: 'local', category: 'Local' },
+  ];
+
+  const handleModelChange = (e) => {
+    const selectedId = e.target.value;
+    const modelObj = models.find(m => m.id === selectedId);
+    if (modelObj) {
+      setLlmModel(modelObj.id);
+      setProvider(modelObj.provider);
+    }
   };
 
   return (
@@ -29,20 +47,23 @@ export default function SettingsModal({ onClose, llmModel, setLlmModel, temperat
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
           <div>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', fontWeight: 500 }}>
-              <Cpu size={16} /> Backend LLM Model
+              <Cloud size={16} /> Backend LLM Model
             </label>
             <select 
               value={llmModel} 
-              onChange={(e) => setLlmModel(e.target.value)}
+              onChange={handleModelChange}
               style={{
-                width: '100%', padding: '0.75rem', borderRadius: '8px', 
-                background: 'rgba(0,0,0,0.3)', color: 'white', border: '1px solid var(--border-color)', outline: 'none'
+                width: '100%', padding: '0.75rem', borderRadius: '8px',
+                background: 'rgba(0,0,0,0.2)', color: '#fff',
+                border: '1px solid var(--border-color)',
+                fontSize: '0.9rem', outline: 'none', cursor: 'pointer'
               }}
             >
-              <option value="phi3">Microsoft Phi-3 (Default)</option>
-              <option value="tinyllama">TinyLlama (Fastest)</option>
-              <option value="llama3:8b">Meta Llama 3 8B</option>
-              <option value="llava">LLaVA (Vision)</option>
+              {models.map(m => (
+                <option key={m.id} value={m.id} style={{ background: '#1e293b' }}>
+                  {m.category}: {m.name}
+                </option>
+              ))}
             </select>
           </div>
 

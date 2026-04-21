@@ -1,13 +1,13 @@
-import React from 'react';
-import { Send, Mic, Square, FileText, Search, Database } from 'lucide-react';
+import { Send, Mic, Square, FileText, Search, Database, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 export default function RagChatView({ 
-  messages, input, setInput, handleSend, loading, recording, 
-  toggleRecording, isSpeechSupported, endOfMessagesRef, hasDocs 
+  messages, input, setInput, handleSend, handleClearChat, loading, recording, 
+  toggleRecording, isSpeechSupported, endOfMessagesRef, hasDocs,
+  mode, setMode 
 }) {
   return (
     <div className="main-chat mode-rag">
@@ -16,9 +16,35 @@ export default function RagChatView({
           <div className="mode-badge" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', border: '1px solid #10b981' }}>Knowledge Base</div>
           <h3 style={{ margin: 0, fontWeight: 600 }}>Document Q&A</h3>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: hasDocs ? '#10b981' : '#ef4444', fontSize: '0.85rem' }}>
-          <Database size={16} />
-          {hasDocs ? 'Vector Store Active' : 'No Documents Found'}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          {/* Mode Toggle */}
+          <div className="toggle-container">
+            <span className={`toggle-label ${mode === 'chat' ? 'active' : ''}`}>General</span>
+            <label className="switch">
+              <input 
+                type="checkbox" 
+                checked={mode === 'rag'} 
+                onChange={(e) => setMode(e.target.checked ? 'rag' : 'chat')}
+              />
+              <span className="slider"></span>
+            </label>
+            <span className={`toggle-label ${mode === 'rag' ? 'active' : ''}`}>Docs</span>
+          </div>
+
+          <button 
+            onClick={handleClearChat} 
+            className="btn-icon" 
+            title="Clear Chat history"
+            style={{ color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}
+          >
+            <Trash2 size={16} /> Reset
+          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: hasDocs ? '#10b981' : '#ef4444', fontSize: '0.85rem' }}>
+            <Database size={16} />
+            {hasDocs ? 'Vector Store Active' : 'No Documents Found'}
+          </div>
         </div>
       </div>
 
@@ -34,8 +60,8 @@ export default function RagChatView({
           let mainContent = msg.content;
           let sourceContent = null;
 
-          if (isBot && mainContent.includes('\n\n---\nSources:')) {
-            const parts = mainContent.split('\n\n---\nSources:');
+          if (isBot && mainContent.includes('\n\n### Sources\n')) {
+            const parts = mainContent.split('\n\n### Sources\n');
             mainContent = parts[0];
             sourceContent = parts[1];
           }
@@ -60,6 +86,11 @@ export default function RagChatView({
             <div key={idx} className={`message ${msg.role}`}>
               {isBot ? (
                 <>
+                  {sourceContent && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.65rem', textTransform: 'uppercase', color: '#10b981', fontWeight: 700, marginBottom: '8px', letterSpacing: '0.05em' }}>
+                      <FileText size={12} /> Document Based Response
+                    </div>
+                  )}
                   <ReactMarkdown 
                     remarkPlugins={[remarkGfm]}
                     components={{
@@ -81,12 +112,22 @@ export default function RagChatView({
                   >
                     {mainContent}
                   </ReactMarkdown>
+
+                  {msg.latency_ms && (
+                    <div className="msg-meta" style={{ fontSize: '0.7rem', opacity: 0.6, marginTop: '8px', display: 'flex', gap: '8px' }}>
+                      <span>⚡ {(msg.latency_ms / 1000).toFixed(2)}s</span>
+                      <span>🤖 {msg.model || 'unknown'} ({msg.provider || 'cloud'})</span>
+                    </div>
+                  )}
+
                   {sourceContent && (
-                    <div style={{ marginTop: '12px', padding: '10px 14px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px', borderLeft: '4px solid #10b981', fontSize: '0.85rem' }}>
-                      <div style={{ fontWeight: 600, color: '#10b981', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Search size={14} /> Knowledge Retrieval Sources:
+                    <div className="source-section">
+                      <div className="source-header">
+                        <Search size={14} /> Citations & Sources
                       </div>
-                      {renderWithHighlights(sourceContent)}
+                      <div style={{ fontSize: '0.8rem', opacity: 0.9, lineHeight: 1.5 }}>
+                        {renderWithHighlights(sourceContent)}
+                      </div>
                     </div>
                   )}
                 </>

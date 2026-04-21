@@ -8,6 +8,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from backend.models.database import init_db
 
 from backend.core.security import limiter
+from backend.core.text_utils import setup_unicode_stdout, sanitize_text
+
+# Configure stdout/stderr for Unicode safety
+setup_unicode_stdout()
+
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -26,6 +31,17 @@ app.add_middleware(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    import traceback
+    safe_exc = sanitize_text(str(exc))
+    print(f"CRITICAL UNHANDLED ERROR: {safe_exc}")
+    traceback.print_exc()
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error", "error": safe_exc},
+    )
 
 @app.get("/")
 def read_root():

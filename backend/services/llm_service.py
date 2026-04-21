@@ -1,80 +1,207 @@
+import os
 import requests
+import traceback
+from backend.core.text_utils import sanitize_text, safe_response
 
+from dotenv import load_dotenv
+from mistralai.client import Mistral
+
+# Explicitly load the root .env file to avoid using dummy keys from subdirectories
+env_path = os.path.join(os.path.dirname(__file__), "../../.env")
+load_dotenv(dotenv_path=env_path, override=True)
+
+# Initialize Mistral client safely
+try:
+    api_key = os.getenv("MISTRAL_API_KEY")
+    client = Mistral(api_key=api_key) if api_key else None
+    if not client:
+        print("WARNING: MISTRAL_API_KEY not found. Mistral provider will be unavailable.")
+except Exception as e:
+    safe_error = sanitize_text(str(e))
+    print(f"CRITICAL: Failed to initialize Mistral client: {safe_error}")
+    client = None
+
+DEFAULT_MISTRAL_MODEL = "mistral-small"
 OLLAMA_URL = "http://localhost:11434/api/generate"
-DEFAULT_MODEL = "phi3"
-ALLOWED_MODELS = ["phi3", "tinyllama", "llama3:8b", "llava"]
+OLLAMA_CHAT_URL = "http://localhost:11434/api/chat"
+
+# In-memory memory storage: conversation_id -> list of messages
+# Format: {"role": "user"|"assistant", "content": str}
+# 10 entries = 5 user+assistant pairs (last 5 turns)
+MAX_HISTORY = 10
+conversation_memory = {}
 
 
-def generate_chat_response(message: str, model: str = None):
+def generate_mistral_response(prompt: str, history: list = None) -> str:
+    """
+    Sends a prompt to Mistral and returns plain text.
+    Includes history if provided.
+    """
+    if not client:
+        return "Mistral API client is not initialized. Please check your MISTRAL_API_KEY."
+        
     try:
-        # Ensure only allowed local models are used, default to phi3
-        selected_model = model if model in ALLOWED_MODELS else DEFAULT_MODEL
+        # Sanitize prompt before sending to model
+        clean_prompt = sanitize_text(prompt, remove_emojis=True)
+        
+        # Sanitize all history entries before sending
+        clean_history = []
+        for msg in (history or []):
+            clean_history.append({
+                "role": msg.get("role", "user"),
+                "content": sanitize_text(str(msg.get("content", "")), remove_emojis=True)
+            })
+        
+        # Prepare messages: history + current prompt
+        messages = clean_history + [{"role": "user", "content": clean_prompt}]
+        
+        chat_response = client.chat.complete(
+            model=DEFAULT_MISTRAL_MODEL,
+            messages=messages,
+        )
+        if not chat_response or not chat_response.choices:
+            raise RuntimeError("Mistral API returned an empty response.")
 
-        # Task 5: Use dedicated system instruction for cleaner prompts
-        system_instruction = "Answer clearly and completely in a concise way."
-
-        # Task 1 & 3: Performance optimized with increased token limit
-        payload = {
-            "model": selected_model,
-            "system": system_instruction,
-            "prompt": message,
-            "stream": False,
-            "options": {
-                "num_predict": 200,  # Increased for completeness
-                "temperature": 0.7
-            }
-        }
-
-        response = requests.post(OLLAMA_URL, json=payload, timeout=120)
-        data = response.json()
-        text = data.get("response", "").strip()
-        context = data.get("context")
-
-        # Task 2: Stop-safe response handling
-        # If response ends abruptly (no punctuation or hit length limit), try a short continuation
-        if data.get("done_reason") == "length" or (text and text[-1] not in ".!?;"):
-            try:
-                # Use context to continue generation without re-prompting
-                followup = requests.post(
-                    OLLAMA_URL,
-                    json={
-                        "model": selected_model,
-                        "context": context,
-                        "prompt": "",  # Continue from last token
-                        "stream": False,
-                        "options": {
-                            "num_predict": 100,
-                            "temperature": 0.5
-                        }
-                    },
-                    timeout=60
-                )
-                if followup.status_code == 200:
-                    more_text = followup.json().get("response", "").strip()
-                    if more_text:
-                        text = f"{text} {more_text}"
-            except:
-                pass # Fallback to original text if followup fails
-
-        # Clean "Assistant" prefix but keep the logic robust
-        if text.lower().startswith("assistant"):
-            text = text[len("assistant"):].strip()
-        if text.startswith(":") or text.startswith("-"):
-             text = text[1:].strip()
+        text = chat_response.choices[0].message.content.strip()
+        if not text:
+            raise RuntimeError("Mistral API returned blank content.")
 
         return text
-
     except Exception as e:
-        return f"Local LLM Error: {str(e)}"
+        error_msg = sanitize_text(str(e))
+        print(f"ERROR [Mistral]: {error_msg}")
+        return f"Mistral API Error: {error_msg}"
+
+
+def generate_local_response(prompt: str, model: str = "phi3", history: list = None) -> str:
+    """
+    Sends a prompt to local Ollama instance using the chat endpoint for history support.
+    """
+    try:
+        # Fallback to phi3 if model is not specified or looks like a mistral model
+        local_model = model if model and "mistral" not in model.lower() else "phi3"
+        
+        # Sanitize prompt before sending to model
+        clean_prompt = sanitize_text(prompt, remove_emojis=True)
+        
+        # Sanitize all history entries before sending
+        clean_history = []
+        for msg in (history or []):
+            clean_history.append({
+                "role": msg.get("role", "user"),
+                "content": sanitize_text(str(msg.get("content", "")), remove_emojis=True)
+            })
+        
+        # Prepare messages: history + current prompt
+        messages = clean_history + [{"role": "user", "content": clean_prompt}]
+        
+        payload = {
+            "model": local_model,
+            "messages": messages,
+            "stream": False
+        }
+        
+        response = requests.post(OLLAMA_CHAT_URL, json=payload, timeout=30)
+        if response.status_code == 200:
+            return response.json().get("message", {}).get("content", "No local response content.")
+        else:
+            return f"Ollama Error ({response.status_code}): {response.text}"
+    except Exception as e:
+        safe_error = sanitize_text(str(e))
+        print(f"ERROR [Local LLM]: {safe_error}")
+        return f"Local LLM (Ollama) failed. Is Ollama running? Error: {safe_error}"
+
+
+def generate_response(prompt: str, provider: str = "mistral", model: str = None, history: list = None) -> str:
+    """
+    Main entry point for generating a response.
+    Routes to Mistral or Ollama based on the provider.
+    """
+    try:
+        # Heuristic: If provider is mistral but model looks local, switch to local
+        if provider == "mistral" and model:
+            local_keywords = ["phi3", "tinyllama", "llama3", "llava"]
+            if any(k in model.lower() for k in local_keywords):
+                provider = "local"
+
+        if provider == "mistral":
+            return generate_mistral_response(prompt, history=history)
+        elif provider == "local":
+            return generate_local_response(prompt, model=model, history=history)
+        else:
+            return generate_mistral_response(prompt, history=history)
+    except Exception as e:
+        safe_error = sanitize_text(str(e))
+        print(f"ERROR [LLM routing]: {safe_error}")
+        return f"Routing Error: {safe_error}"
+
+
+def generate_chat_response(message: str, model: str = None, provider: str = "mistral", conversation_id: int = None) -> str:
+    """
+    Drop-in replacement for old LLM calls.
+    Manages in-memory history (last 5 turns) and ensures NO exceptions bubble up.
+    Sanitizes all inputs before storing or sending to the model.
+    """
+    try:
+        # 1. Sanitize the incoming message to prevent garbage input
+        clean_message = sanitize_text(message, remove_emojis=True).strip()
+        if not clean_message:
+            return "Please provide a valid message."
+
+        # 2. Fetch the last 5 turns (10 entries) from structured memory
+        history = []
+        if conversation_id and conversation_id in conversation_memory:
+            # Always slice to the last MAX_HISTORY entries before passing
+            history = conversation_memory[conversation_id][-MAX_HISTORY:]
+
+        # 3. Generate response with clean message + structured history
+        reply = generate_response(clean_message, provider=provider, model=model, history=history)
+
+        # 4. Sanitize reply and run garbage detection before storing
+        raw_reply = sanitize_text(str(reply), remove_emojis=True).strip() if reply else ""
+        clean_reply = safe_response(raw_reply) if raw_reply else "Something went wrong. Please try again."
+
+        # 5. Store ONLY the clean user message + clean reply (never embed previous context strings)
+        if conversation_id:
+            if conversation_id not in conversation_memory:
+                conversation_memory[conversation_id] = []
+            
+            conversation_memory[conversation_id].append({"role": "user", "content": clean_message})
+            conversation_memory[conversation_id].append({"role": "assistant", "content": clean_reply})
+            
+            # Keep only last MAX_HISTORY entries (5 turns)
+            if len(conversation_memory[conversation_id]) > MAX_HISTORY:
+                conversation_memory[conversation_id] = conversation_memory[conversation_id][-MAX_HISTORY:]
+
+        return clean_reply
+    except Exception as e:
+        safe_error = sanitize_text(str(e))
+        print(f"CRITICAL ERROR in generate_chat_response: {safe_error}")
+        traceback.print_exc()
+        return f"System Error: {safe_error}"
+
 
 def generate_chat_stream(*args, **kwargs):
     """
-    Flexible streaming fallback to avoid argument mismatch errors
+    Streaming-compatible wrapper with memory support.
+    Yields chunks safely and handles memory persistence.
     """
-    # Extract message safely
-    message = args[0] if len(args) > 0 else kwargs.get("message", "")
-    model = args[4] if len(args) > 4 else kwargs.get("model", None)
+    try:
+        message = args[0] if args else kwargs.get("message", "")
+        conversation_id = args[1] if len(args) > 1 else kwargs.get("conversation_id")
+        model = kwargs.get("model")
+        provider = kwargs.get("provider", "mistral")
+        
+        # If called from a route that only passes positionals, try to extract model
+        if len(args) >= 5:
+            model = args[4]
 
-    response = generate_chat_response(message, model=model)
-
-    yield response
+        # Use the non-streaming logic to handle history and response generation
+        response = generate_chat_response(message, model=model, provider=provider, conversation_id=conversation_id)
+        yield response
+        
+    except Exception as e:
+        safe_error = sanitize_text(str(e))
+        print(f"CRITICAL ERROR in generate_chat_stream: {safe_error}")
+        traceback.print_exc()
+        yield f"\n[Backend Error]: {safe_error}"

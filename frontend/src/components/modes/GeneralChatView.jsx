@@ -1,13 +1,13 @@
-import React from 'react';
-import { Send, Mic, Square, Image as ImageIcon, Bot } from 'lucide-react';
+import { Send, Mic, Square, Image as ImageIcon, Bot, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 export default function GeneralChatView({ 
-  messages, input, setInput, handleSend, loading, recording, 
-  toggleRecording, imageFile, setImageFile, isSpeechSupported, endOfMessagesRef 
+  messages, input, setInput, handleSend, handleClearChat, loading, recording, 
+  toggleRecording, imageFile, setImageFile, isSpeechSupported, 
+  endOfMessagesRef, mode, setMode 
 }) {
   return (
     <div className="main-chat mode-chat">
@@ -16,38 +16,73 @@ export default function GeneralChatView({
           <div className="mode-badge" style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6' }}>General</div>
           <h3 style={{ margin: 0, fontWeight: 600 }}>MindBot Chat</h3>
         </div>
-        <Bot size={20} style={{ opacity: 0.5 }} />
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          {/* Mode Toggle */}
+          <div className="toggle-container">
+            <span className={`toggle-label ${mode === 'chat' ? 'active' : ''}`}>General</span>
+            <label className="switch">
+              <input 
+                type="checkbox" 
+                checked={mode === 'rag'} 
+                onChange={(e) => setMode(e.target.checked ? 'rag' : 'chat')}
+              />
+              <span className="slider"></span>
+            </label>
+            <span className={`toggle-label ${mode === 'rag' ? 'active' : ''}`}>Docs</span>
+          </div>
+
+          <button 
+            onClick={handleClearChat} 
+            className="btn-icon" 
+            title="Clear Chat"
+            style={{ color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}
+          >
+            <Trash2 size={16} /> Reset
+          </button>
+          
+          <Bot size={20} style={{ opacity: 0.5 }} />
+        </div>
       </div>
       
       <div className="chat-history">
         {messages.map((msg, idx) => (
           <div key={idx} className={`message ${msg.role}`}>
             {msg.role === 'bot' ? (
-              <ReactMarkdown 
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  code({node, inline, className, children, ...props}) {
-                    const match = /language-(\w+)/.exec(className || '');
-                    return !inline && match ? (
-                      <div style={{ position: 'relative', marginTop: '1rem', marginBottom: '1rem', borderRadius: '8px', overflow: 'hidden' }}>
-                        <div style={{ background: '#1e1e1e', padding: '4px 12px', fontSize: '0.75rem', color: '#888', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333' }}>
-                          <span>{match[1]}</span>
-                          <button onClick={() => navigator.clipboard.writeText(String(children))} style={{ background: 'transparent', border: 'none', color: '#3b82f6', cursor: 'pointer' }}>Copy</button>
+              <div className="bot-response-container">
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    code({node, inline, className, children, ...props}) {
+                      const match = /language-(\w+)/.exec(className || '');
+                      return !inline && match ? (
+                        <div style={{ position: 'relative', marginTop: '1rem', marginBottom: '1rem', borderRadius: '8px', overflow: 'hidden' }}>
+                          <div style={{ background: '#1e1e1e', padding: '4px 12px', fontSize: '0.75rem', color: '#888', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #333' }}>
+                            <span>{match[1]}</span>
+                            <button onClick={() => navigator.clipboard.writeText(String(children))} style={{ background: 'transparent', border: 'none', color: '#3b82f6', cursor: 'pointer' }}>Copy</button>
+                          </div>
+                          <SyntaxHighlighter style={vscDarkPlus} language={match[1]} PreTag="div" customStyle={{ margin: 0 }} {...props}>
+                            {String(children).replace(/\n$/, '')}
+                          </SyntaxHighlighter>
                         </div>
-                        <SyntaxHighlighter style={vscDarkPlus} language={match[1]} PreTag="div" customStyle={{ margin: 0 }} {...props}>
-                          {String(children).replace(/\n$/, '')}
-                        </SyntaxHighlighter>
-                      </div>
-                    ) : (
-                      <code className={className} style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 4px', borderRadius: '4px' }} {...props}>
-                        {children}
-                      </code>
-                    )
-                  }
-                }}
-              >
-                {msg.content}
-              </ReactMarkdown>
+                      ) : (
+                        <code className={className} style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 4px', borderRadius: '4px' }} {...props}>
+                          {children}
+                        </code>
+                      )
+                    }
+                  }}
+                >
+                  {msg.content}
+                </ReactMarkdown>
+
+                {msg.latency_ms && (
+                  <div className="msg-meta" style={{ fontSize: '0.7rem', opacity: 0.6, marginTop: '8px', display: 'flex', gap: '8px' }}>
+                    <span>⚡ {(msg.latency_ms / 1000).toFixed(2)}s</span>
+                    <span>🤖 {msg.model || 'unknown'} ({msg.provider || 'cloud'})</span>
+                  </div>
+                )}
+              </div>
             ) : msg.content}
           </div>
         ))}

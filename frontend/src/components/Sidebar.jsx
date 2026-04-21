@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Upload, FileText, Settings, Bot, Cpu, LogOut, Trash2, PlusCircle, MessageSquare, ShieldAlert, Sun, Moon } from 'lucide-react';
 
 export default function Sidebar({ mode, setMode, setToken, activeConversationId, setActiveConversationId, isAdmin, onOpenSettings, theme, setTheme }) {
@@ -7,16 +9,34 @@ export default function Sidebar({ mode, setMode, setToken, activeConversationId,
   const [uploadStatus, setUploadStatus] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [conversations, setConversations] = useState([]);
+  const [lastSummary, setLastSummary] = useState('');
+
+  const [serverError, setServerError] = useState(false);
 
   useEffect(() => {
-    // Fetch implicitly synced documents from the FAISS backend data layer mapping
-    axios.get(`${import.meta.env.VITE_API_BASE_URL}/list-docs`)
-      .then(res => {
-        setUploadedFiles(res.data.documents || []);
-      })
-      .catch(err => console.error("Could not sync documents:", err));
+    let isMounted = true;
+    
+    const syncData = async () => {
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/list-docs`);
+        if (isMounted) {
+          setUploadedFiles(res.data.documents || []);
+          setServerError(false);
+        }
+      } catch (err) {
+        console.error("Could not sync documents:", err);
+        if (isMounted) setServerError(true);
+      }
       
-    fetchConversations();
+      try {
+        await fetchConversations();
+      } catch (err) {
+        console.error("Fetch convs failed:", err);
+      }
+    };
+
+    syncData();
+    return () => { isMounted = false; };
   }, []);
 
   const fetchConversations = async () => {
@@ -70,8 +90,11 @@ export default function Sidebar({ mode, setMode, setToken, activeConversationId,
       const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/upload-doc`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setUploadStatus(`Success: ${res.data.chunks} chunks indexed`);
+      setUploadStatus(`Document uploaded successfully! ${res.data.message}`);
       setUploadedFiles(prev => [...prev, file.name]);
+      if (res.data.summary) {
+        setLastSummary(res.data.summary);
+      }
     } catch (err) {
       console.error(err);
       if (err.response) {
@@ -168,6 +191,23 @@ export default function Sidebar({ mode, setMode, setToken, activeConversationId,
                 />
               </div>
             ))}
+          </div>
+        )}
+        
+        {lastSummary && (
+          <div className="summary-box" style={{ padding: '0.75rem', marginTop: '0.5rem' }}>
+            <div className="summary-title" style={{ fontSize: '0.8rem', marginBottom: '0.4rem' }}>
+              <Bot size={14} /> Quick Summary
+            </div>
+            <div className="summary-content" style={{ fontSize: '0.75rem', maxHeight: '150px', overflowY: 'auto' }}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{lastSummary}</ReactMarkdown>
+            </div>
+            <button 
+              onClick={() => setLastSummary('')}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.7rem', marginTop: '4px', textDecoration: 'underline' }}
+            >
+              Clear
+            </button>
           </div>
         )}
         
