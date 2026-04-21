@@ -35,7 +35,6 @@ export default function AuthView({ setToken }) {
   };
 
   return (
-  return (
     <div className="flex justify-center items-center h-screen w-screen p-4">
       <div className="glass-panel w-full max-w-sm p-6 sm:p-10 flex flex-col gap-6 shadow-2xl">
         <h2 className="text-2xl sm:text-3xl font-bold text-center tracking-tight">

@@ -113,5 +113,3 @@ export default function AdminDashboard({ token }) {
     </div>
   );
 }
-  );
-}
