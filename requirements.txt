@@ -10,12 +10,9 @@ mistralai
 python-multipart
 SpeechRecognition
 pypdf
-
 python-dotenv
 slowapi
 python-jose[cryptography]
 passlib[bcrypt]
-
-python-multipart
 python-magic-bin; sys_platform == 'win32'
 python-magic; sys_platform != 'win32'
