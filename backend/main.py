@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 import sys
 import os
 
@@ -19,16 +18,13 @@ from slowapi.errors import RateLimitExceeded
 # Initialize database
 init_db()
 
-app = FastAPI(title="MindBot API")
+app = FastAPI()
 
-origins = [
-    "https://mindbot-git.vercel.app",
-    "http://localhost:5173"
-]
+from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
