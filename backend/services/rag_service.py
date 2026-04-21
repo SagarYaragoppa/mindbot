@@ -1,184 +1,229 @@
+"""
+rag_service.py  –  EXTREMELY Lightweight RAG (Memory optimized for 512MB RAM).
+
+Replaces all ML-based embeddings (FAISS, HuggingFace, scikit-learn) with a 
+simple, pure-python keyword overlap search. This eliminates dependency on 
+heavy ML libraries and keeps the backend footprint < 100MB.
+
+All public functions (load_document, split_docs, create_vector_store,
+load_vector_store, index_document, query_rag, clear_index,
+summarize_document) have IDENTICAL signatures to the original.
+"""
+
 import os
 import shutil
-from langchain_community.document_loaders import PyPDFLoader, TextLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
+import json
+import pickle
+from typing import List, Optional
 
 from backend.services.llm_service import generate_chat_response
 from backend.core.text_utils import sanitize_text, safe_response
 
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+DB_PATH = "backend/data/faiss_index"          # kept for API / path compat
+_INDEX_FILE = os.path.join(DB_PATH, "simple_index.pkl")
 
-# Path to store FAISS index
-DB_PATH = "backend/data/faiss_index"
-
-# Embeddings model
-embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
-)
-
-vector_store = None
+# ---------------------------------------------------------------------------
+# In-memory store (populated lazily on first use)
+# ---------------------------------------------------------------------------
+# _chunks : list[dict]  – each has {"page_content": str, "metadata": dict}
+_chunks: List[dict] = []
+_store_ready: bool = False
 
 
-# -------------------------------
-# LOAD DOCUMENT
-# -------------------------------
-def load_document(file_path):
+# ---------------------------------------------------------------------------
+# INTERNAL: similarity search – returns top-k chunk dicts using keyword overlap
+# ---------------------------------------------------------------------------
+def _similarity_search(query: str, k: int = 2) -> List[dict]:
+    """Pure-python keyword overlap search (Zero ML dependencies)."""
+    if not _chunks:
+        return []
+        
+    try:
+        # Pre-process query tokens
+        query_tokens = set(query.lower().split())
+        if not query_tokens:
+            return []
+
+        scored_chunks = []
+        for chunk in _chunks:
+            content = chunk.get("page_content", "").lower()
+            # Simple score: count how many query words appear in the chunk
+            overlap = 0
+            for token in query_tokens:
+                if token in content:
+                    overlap += 1
+            
+            if overlap > 0:
+                scored_chunks.append((overlap, chunk))
+
+        # Sort by score (overlap count) descending
+        scored_chunks.sort(key=lambda x: x[0], reverse=True)
+        
+        # Return top-k
+        return [item[1] for item in scored_chunks[:k]]
+    except Exception as e:
+        print(f"DEBUG: similarity_search error: {sanitize_text(str(e))}")
+        return []
+
+
+# ---------------------------------------------------------------------------
+# PUBLIC: load_document
+# ---------------------------------------------------------------------------
+def load_document(file_path: str) -> list:
+    """Lazy imports LangChain loaders only when needed."""
     if file_path.endswith(".pdf"):
+        from langchain_community.document_loaders import PyPDFLoader
         loader = PyPDFLoader(file_path)
     else:
+        from langchain_community.document_loaders import TextLoader
         loader = TextLoader(file_path)
-
+    
     docs = loader.load()
-
-    print("Loaded docs:", len(docs))
-
+    print(f"Loaded docs: {len(docs)}")
     return docs
 
 
-# -------------------------------
-# SPLIT DOCUMENT
-# -------------------------------
-def split_docs(docs):
+# ---------------------------------------------------------------------------
+# PUBLIC: split_docs
+# ---------------------------------------------------------------------------
+def split_docs(docs: list) -> list:
+    """Lazy imports LangChain splitters only when needed."""
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=500,
         chunk_overlap=50
     )
-
     chunks = splitter.split_documents(docs)
-
-    print("Chunks:", len(chunks))
-
+    print(f"Chunks: {len(chunks)}")
     return chunks
 
 
-# -------------------------------
-# CREATE / UPDATE VECTOR STORE
-# -------------------------------
-def create_vector_store(chunks):
-    global vector_store
-
+# ---------------------------------------------------------------------------
+# PUBLIC: create_vector_store (Stores chunks and marks ready)
+# ---------------------------------------------------------------------------
+def create_vector_store(chunks: list) -> None:
+    global _chunks, _store_ready
     if not chunks:
         raise ValueError("No chunks to store!")
 
-    vector_store = FAISS.from_documents(chunks, embeddings)
+    # Convert LangChain Document objects to plain dicts for pickling
+    _chunks = [
+        {
+            "page_content": c.page_content,
+            "metadata": dict(c.metadata) if hasattr(c, "metadata") else {}
+        }
+        for c in chunks
+    ]
 
-    vector_store.save_local(DB_PATH)
+    _store_ready = True
 
-    print("Stored in FAISS")
+    # Persist to disk so it survives restarts
+    os.makedirs(DB_PATH, exist_ok=True)
+    with open(_INDEX_FILE, "wb") as f:
+        pickle.dump(_chunks, f)
+
+    print("Stored lightweight index")
 
 
-# -------------------------------
-# LOAD VECTOR STORE
-# -------------------------------
-def load_vector_store():
-    global vector_store
-
+# ---------------------------------------------------------------------------
+# PUBLIC: load_vector_store (Lazy-loads from disk on first RAG query)
+# ---------------------------------------------------------------------------
+def load_vector_store() -> None:
+    global _chunks, _store_ready
     try:
-        if os.path.exists(DB_PATH):
-            vector_store = FAISS.load_local(
-                DB_PATH,
-                embeddings,
-                allow_dangerous_deserialization=True
-            )
-            print("DEBUG: FAISS index loaded successfully")
+        if os.path.exists(_INDEX_FILE):
+            with open(_INDEX_FILE, "rb") as f:
+                _chunks = pickle.load(f)
+            _store_ready = True
+            print("DEBUG: Lightweight index loaded from disk")
         else:
-            vector_store = None
-            print("DEBUG: FAISS index path does not exist")
+            _chunks = []
+            _store_ready = False
+            print("DEBUG: No saved index found")
     except Exception as e:
-        safe_error = sanitize_text(str(e))
-        print(f"DEBUG: Error loading FAISS index: {safe_error}")
-        vector_store = None
+        print(f"DEBUG: Error loading index: {sanitize_text(str(e))}")
+        _chunks = []
+        _store_ready = False
 
 
-# -------------------------------
-# SUMMARIZE DOCUMENT
-# -------------------------------
-def summarize_document(chunks, model=None, provider="mistral"):
-    """
-    Generates a concise summary from the first few chunks of a document.
-    """
+# ---------------------------------------------------------------------------
+# PUBLIC: summarize_document
+# ---------------------------------------------------------------------------
+def summarize_document(chunks: list, model: Optional[str] = None, provider: str = "mistral") -> str:
+    """Generates a concise summary from the first few chunks of a document."""
     if not chunks:
         return "No content available to summarize."
-    
-    # Take first 5 chunks for summary context (approx 2500 tokens)
-    summary_context = "\n".join([c.page_content for c in chunks[:5]])
-    
-    prompt = f"""
-    Please provide a concise summary of the following document content. 
-    Use 5-8 bullet points or a short paragraph. 
-    Make it easy to understand for a general user.
 
-    CONTENT:
-    {summary_context}
-    """
-    
+    # Handle both Document objects and dicts
+    sample_texts = []
+    for c in chunks[:5]:
+        if hasattr(c, "page_content"):
+            sample_texts.append(c.page_content)
+        elif isinstance(c, dict):
+            sample_texts.append(c.get("page_content", ""))
+
+    summary_context = "\n".join(sample_texts)
+
+    prompt = (
+        "Please provide a concise summary of the following document content. "
+        "Use 5-8 bullet points or a short paragraph. "
+        "Make it easy to understand for a general user.\n\n"
+        f"CONTENT:\n{summary_context}"
+    )
+
     try:
         summary = generate_chat_response(prompt, model=model, provider=provider)
         return summary
     except Exception as e:
-        safe_error = sanitize_text(str(e))
-        print(f"DEBUG: Summary generation failed: {safe_error}")
+        print(f"DEBUG: Summary generation failed: {sanitize_text(str(e))}")
         return "Summary generation failed."
 
 
-# -------------------------------
-# MAIN INDEX FUNCTION
-# -------------------------------
-def index_document(file_path, model=None, provider="mistral"):
+# ---------------------------------------------------------------------------
+# PUBLIC: index_document
+# ---------------------------------------------------------------------------
+def index_document(file_path: str, model: Optional[str] = None, provider: str = "mistral"):
     docs = load_document(file_path)
-
     if not docs:
         raise ValueError("Document loading failed!")
 
     chunks = split_docs(docs)
-
     if not chunks:
         raise ValueError("Chunking failed!")
 
     create_vector_store(chunks)
-    
-    # Generate summary
-    summary = summarize_document(chunks, model=model, provider=provider)
 
+    summary = summarize_document(chunks, model=model, provider=provider)
     return len(chunks), summary
 
 
-# -------------------------------
-# QUERY RAG
-# -------------------------------
-def query_rag(query: str, conversation_id: int = None, model: str = None, provider: str = "mistral"):
+# ---------------------------------------------------------------------------
+# PUBLIC: query_rag
+# ---------------------------------------------------------------------------
+def query_rag(
+    query: str,
+    conversation_id: Optional[int] = None,
+    model: Optional[str] = None,
+    provider: str = "mistral",
+) -> str:
     safe_query_preview = sanitize_text(query[:50])
     print(f"DEBUG: RAG request received: '{safe_query_preview}...'")
-    global vector_store
 
-    # Clean the incoming query (backend manages history via conversation_id)
     actual_query = sanitize_text(query.strip(), remove_emojis=True)
 
-    # Lazy-load vector store if needed
-    if vector_store is None:
+    # Lazy-load index if in-memory store is empty
+    if not _store_ready:
         load_vector_store()
 
-    docs = []
-    if vector_store is not None:
-        try:
-            if not hasattr(vector_store, 'index') or vector_store.index.ntotal > 0:
-                print(f"DEBUG: Searching vector store. Index size: {getattr(vector_store.index, 'ntotal', 'unknown')}")
-                # Limit to 2 chunks to keep context tight and avoid token explosion
-                docs = vector_store.similarity_search(actual_query, k=2)
-                print(f"DEBUG: Documents retrieved: {len(docs)}")
-        except Exception as e:
-            safe_error = sanitize_text(str(e))
-            print(f"DEBUG: similarity_search error: {safe_error}")
+    docs = _similarity_search(actual_query, k=2)
+    print(f"DEBUG: Documents matched: {len(docs)}")
 
-    # ------------------------------------------------------------------
-    # Build clean, structured RAG prompt:
-    # Instructions -> Context (doc chunks only) -> Question
-    # Previous assistant output is NEVER included in the context section.
-    # ------------------------------------------------------------------
+    # Build prompt
     sections = []
 
-    # Core instructions
     system_instructions = (
         "Instructions:\n"
         "- Answer the following question based ONLY on the provided context.\n"
@@ -189,47 +234,48 @@ def query_rag(query: str, conversation_id: int = None, model: str = None, provid
     )
     sections.append(system_instructions)
 
-    # Context section: document chunks only (no history, no previous answers)
     if docs:
-        raw_context = "\n---\n".join([doc.page_content.strip() for doc in docs])
-        # Hard cap at 1500 chars to prevent token bloat
+        raw_context = "\n---\n".join([d["page_content"].strip() for d in docs])
         context = raw_context[:1500]
         sections.append(f"Context:\n{context}")
 
-    # Question section
     sections.append(f"Question:\n{actual_query}")
-
     final_prompt = "\n\n".join(sections)
 
-    # Generate response (conversation_id lets the LLM service handle turn memory)
-    answer = generate_chat_response(final_prompt, model=model, provider=provider, conversation_id=conversation_id)
+    answer = generate_chat_response(
+        final_prompt, model=model, provider=provider, conversation_id=conversation_id
+    )
 
-    # Apply backend garbage filter
     clean_answer = safe_response(answer) if answer else "Something went wrong. Please try again."
 
-    # Append source citations if RAG was used
+    # Append source citations
     if docs:
         source_text = "\n\n### Sources\n"
         for i, doc in enumerate(docs):
-            source_path = doc.metadata.get("source", "Unknown Document")
-            source_name = os.path.basename(source_path)
-            page = doc.metadata.get("page")
+            source_path = doc["metadata"].get("source", "Unknown Document")
+            source_name = os.path.basename(str(source_path))
+            page = doc["metadata"].get("page")
             page_info = f" (Page {page + 1})" if page is not None else ""
-            chunk = doc.page_content.replace("\n", " ").strip()
+            chunk = doc["page_content"].replace("\n", " ").strip()
             truncated_chunk = chunk[:150] + "..." if len(chunk) > 150 else chunk
-            source_text += f"{i+1}. **{source_name}{page_info}**: \"{truncated_chunk}\"\n"
+            source_text += f'{i+1}. **{source_name}{page_info}**: "{truncated_chunk}"\n'
 
         return f"{clean_answer}{source_text}"
 
     return clean_answer
 
 
-# -------------------------------
-# CLEAR INDEX
-# -------------------------------
-def clear_index():
-    global vector_store
-    vector_store = None
+# ---------------------------------------------------------------------------
+# PUBLIC: clear_index
+# ---------------------------------------------------------------------------
+def clear_index() -> None:
+    global _chunks, _store_ready
+    _chunks = []
+    _store_ready = False
+
     if os.path.exists(DB_PATH):
-        shutil.rmtree(DB_PATH)
-        print("FAISS index cleared")
+        try:
+            shutil.rmtree(DB_PATH)
+            print("Index files cleared")
+        except Exception as e:
+            print(f"DEBUG: clear_index error: {str(e)}")
