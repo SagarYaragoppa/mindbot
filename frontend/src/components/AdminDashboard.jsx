@@ -37,29 +37,29 @@ export default function AdminDashboard({ token }) {
   };
 
   return (
-    <div className="main-chat glass-panel flex flex-col gap-8 p-4 sm:p-8 overflow-y-auto h-full">
+    <div className="main-chat glass-panel flex flex-col gap-8 p-4 sm:p-8 overflow-y-auto h-full w-full max-w-7xl mx-auto">
       
       <div>
         <h2 className="flex items-center gap-3 text-xl sm:text-2xl font-bold text-accent-color mb-6">
           <ShieldAlert size={28} /> Advanced Server Telemetry
         </h2>
-        {loadingError && <p className="text-red-400 mb-4 bg-red-400/10 p-3 rounded-lg border border-red-400/20 text-sm">{loadingError}</p>}
+        {loadingError && <p className="text-red-400 mb-4 bg-red-400/10 p-3 rounded-lg border border-red-400/20 text-xs sm:text-sm">{loadingError}</p>}
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           <div className="glass-panel flex flex-col items-center p-6 bg-blue-500/10 border-blue-500/20">
             <Users size={32} className="text-blue-400 mb-4" />
-            <span className="text-3xl font-bold mb-1">{stats.total_users}</span>
-            <span className="text-sm text-text-secondary">Total Users</span>
+            <span className="text-2xl sm:text-3xl font-bold mb-1">{stats.total_users}</span>
+            <span className="text-xs sm:text-sm text-text-secondary">Total Users</span>
           </div>
           <div className="glass-panel flex flex-col items-center p-6 bg-emerald-500/10 border-emerald-500/20">
             <Database size={32} className="text-emerald-400 mb-4" />
-            <span className="text-3xl font-bold mb-1">{stats.total_conversations}</span>
-            <span className="text-sm text-text-secondary">Total Conversations</span>
+            <span className="text-2xl sm:text-3xl font-bold mb-1">{stats.total_conversations}</span>
+            <span className="text-xs sm:text-sm text-text-secondary">Total Conversations</span>
           </div>
           <div className="glass-panel flex flex-col items-center p-6 bg-amber-500/10 border-amber-500/20">
             <MessageSquare size={32} className="text-amber-400 mb-4" />
-            <span className="text-3xl font-bold mb-1">{stats.total_messages}</span>
-            <span className="text-sm text-text-secondary">Total Messages</span>
+            <span className="text-2xl sm:text-3xl font-bold mb-1">{stats.total_messages}</span>
+            <span className="text-xs sm:text-sm text-text-secondary">Total Messages</span>
           </div>
         </div>
       </div>

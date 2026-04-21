@@ -161,7 +161,7 @@ export default function RagChatView({
             </button>
           )}
           
-          <div className="flex-1 flex gap-2 sm:gap-3 bg-black/20 p-1 rounded-2xl border border-white/5 focus-within:border-emerald-500/50 transition-colors">
+          <div className="flex-1 flex flex-col sm:flex-row gap-2 sm:gap-3 bg-black/20 p-1 sm:p-2 rounded-2xl border border-white/5 focus-within:border-emerald-500/50 transition-colors">
             <input 
               type="text" 
               placeholder={recording ? "Recording..." : "Ask your documents..." }
@@ -172,11 +172,11 @@ export default function RagChatView({
               disabled={recording}
             />
             <button 
-              className="btn h-10 w-10 sm:h-12 sm:w-auto sm:px-6 rounded-xl shrink-0 !bg-emerald-600 hover:!bg-emerald-500" 
+              className="btn w-full sm:w-auto px-6 h-12 rounded-xl shrink-0 !bg-emerald-600 hover:!bg-emerald-500 text-sm sm:text-base" 
               onClick={() => handleSend()} 
               disabled={loading || recording || !input.trim()}
             >
-              <Search size={18} /> <span className="hidden sm:inline">Query</span>
+              <Search size={18} /> Query
             </button>
           </div>
         </div>

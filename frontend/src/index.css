@@ -137,12 +137,21 @@ input[type="text"]:focus {
 }
 
 /* Layout */
+.responsive-container {
+  width: 100%;
+  max-width: 448px; /* max-w-md */
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
 .app-container {
   display: flex;
   flex-direction: column;
   width: 100%;
   height: 100%;
-  gap: 1rem;
+  gap: 0.5rem;
   overflow: hidden;
 }
 

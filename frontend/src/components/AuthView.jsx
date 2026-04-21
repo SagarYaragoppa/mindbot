@@ -35,14 +35,14 @@ export default function AuthView({ setToken }) {
   };
 
   return (
-    <div className="flex justify-center items-center h-screen w-screen p-4">
-      <div className="glass-panel w-full max-w-sm p-6 sm:p-10 flex flex-col gap-6 shadow-2xl">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center tracking-tight">
+    <div className="flex justify-center items-center min-h-screen w-full p-4 bg-background-color">
+      <div className="glass-panel w-full max-w-md mx-auto sm:w-[400px] p-6 sm:p-10 flex flex-col gap-6 shadow-2xl">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center tracking-tight text-white">
           {isLogin ? 'Welcome Back' : 'Create Account'}
         </h2>
         
         {error && (
-          <div className="p-3 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-sm text-center animate-in fade-in zoom-in-95">
+          <div className="p-3 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-xs sm:text-sm text-center animate-in fade-in zoom-in-95">
             {error}
           </div>
         )}
@@ -54,7 +54,7 @@ export default function AuthView({ setToken }) {
             value={username} 
             onChange={(e) => setUsername(e.target.value)}
             required
-            className="w-full p-3.5 rounded-xl border border-white/10 bg-black/20 text-white focus:border-accent-color transition-colors outline-none text-base"
+            className="w-full p-3.5 rounded-xl border border-white/10 bg-black/20 text-white focus:border-accent-color transition-colors outline-none text-sm sm:text-base"
           />
           <input 
             type="password" 
@@ -62,11 +62,11 @@ export default function AuthView({ setToken }) {
             value={password} 
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full p-3.5 rounded-xl border border-white/10 bg-black/20 text-white focus:border-accent-color transition-colors outline-none text-base"
+            className="w-full p-3.5 rounded-xl border border-white/10 bg-black/20 text-white focus:border-accent-color transition-colors outline-none text-sm sm:text-base"
           />
           <button 
             type="submit" 
-            className="btn w-full py-3.5 flex justify-center items-center gap-2 font-bold shadow-lg shadow-accent-color/20 mt-2" 
+            className="btn w-full sm:w-auto mx-auto px-10 py-3.5 flex justify-center items-center gap-2 font-bold shadow-lg shadow-accent-color/20 mt-2 text-sm sm:text-base" 
             disabled={loading}
           >
             {loading ? 'Processing...' : isLogin ? <><LogIn size={20} /> Login</> : <><UserPlus size={20} /> Register</>}

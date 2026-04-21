@@ -1,6 +1,10 @@
 import React from 'react';
 import { X, Settings, Thermometer, Cloud } from 'lucide-react';
 
+const MODELS = [
+  { value: "mistral", label: "Mistral (Cloud)" }
+];
+
 export default function SettingsModal({ onClose, temperature, setTemperature, llmModel, setLlmModel, provider, setProvider }) {
   
   const handleSave = () => {
@@ -10,22 +14,18 @@ export default function SettingsModal({ onClose, temperature, setTemperature, ll
     onClose();
   };
 
-  const models = [
-    { name: 'Mistral (Cloud)', id: 'mistral', provider: 'mistral', category: 'Cloud' },
-  ];
-
   const handleModelChange = (e) => {
-    const selectedId = e.target.value;
-    const modelObj = models.find(m => m.id === selectedId);
+    const selectedValue = e.target.value;
+    const modelObj = MODELS.find(m => m.value === selectedValue);
     if (modelObj) {
-      setLlmModel(modelObj.id);
-      setProvider(modelObj.provider);
+      setLlmModel(modelObj.value);
+      setProvider('mistral');
     }
   };
 
   return (
-    <div className="fixed inset-0 w-full h-full bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 sm:p-6">
-      <div className="glass-panel w-full max-w-md p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 w-full h-full bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+      <div className="glass-panel w-[90%] sm:w-[400px] p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto mx-auto">
         <X 
           size={24} 
           onClick={onClose} 
@@ -47,9 +47,9 @@ export default function SettingsModal({ onClose, temperature, setTemperature, ll
               disabled={true}
               className="w-full p-3 rounded-lg bg-black/20 text-white border border-border-color text-sm sm:text-base outline-none cursor-not-allowed opacity-80"
             >
-              {models.map(m => (
-                <option key={m.id} value={m.id} className="bg-[#1e293b]">
-                  {m.category}: {m.name}
+              {MODELS.map(m => (
+                <option key={m.value} value={m.value} className="bg-[#1e293b]">
+                  {m.label}
                 </option>
               ))}
             </select>
@@ -76,9 +76,11 @@ export default function SettingsModal({ onClose, temperature, setTemperature, ll
           </div>
         </div>
 
-        <button className="btn w-full text-base py-3" onClick={handleSave}>
-          Confirm & Save
-        </button>
+        <div className="flex justify-center mt-6">
+          <button className="btn w-full sm:w-auto px-10 text-sm sm:text-base py-3" onClick={handleSave}>
+            Confirm & Save
+          </button>
+        </div>
       </div>
     </div>
   );

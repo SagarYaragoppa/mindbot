@@ -132,7 +132,7 @@ export default function GeneralChatView({
             </label>
           </div>
 
-          <div className="flex-1 flex gap-2 sm:gap-3 bg-black/20 p-1 rounded-2xl border border-white/5 focus-within:border-accent-color/50 transition-colors">
+          <div className="flex-1 flex flex-col sm:flex-row gap-2 sm:gap-3 bg-black/20 p-1 sm:p-2 rounded-2xl border border-white/5 focus-within:border-accent-color/50 transition-colors">
             <input 
               type="text" 
               placeholder={recording ? "Recording..." : "Message MindBot..." }
@@ -143,11 +143,11 @@ export default function GeneralChatView({
               disabled={recording}
             />
             <button 
-              className="btn h-10 w-10 sm:h-12 sm:w-auto sm:px-6 rounded-xl shrink-0" 
+              className="btn w-full sm:w-auto px-6 h-12 rounded-xl shrink-0 text-sm sm:text-base" 
               onClick={() => handleSend()} 
               disabled={loading || recording || (!input.trim() && !imageFile)}
             >
-              <Send size={18} /> <span className="hidden sm:inline">Send</span>
+              <Send size={18} /> Send
             </button>
           </div>
         </div>
