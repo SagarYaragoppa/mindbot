@@ -16,3 +16,6 @@ langchain
 langchain-community
 langchain-text-splitters
 beautifulsoup4
+faiss-cpu
+sentence-transformers
+langchain-huggingface

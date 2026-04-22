@@ -12,8 +12,7 @@ from backend.core.text_utils import sanitize_text, safe_print, safe_response
 # =========================
 # CONFIG
 # =========================
-OLLAMA_URL = "http://localhost:11434/api/generate"
-AGENT_MODEL = "llama3:8b"
+# Removed local LLM constants
 
 # Maximum reasoning steps to prevent runaway loops
 MAX_STEPS = 2

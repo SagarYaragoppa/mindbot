@@ -291,23 +291,42 @@ class AgentRequest(BaseModel):
 
 @router.post("/agent")
 async def agent_endpoint(
-    task: str = Form(...),
-    conversation_id: Optional[int] = Form(None),
-    model: Optional[str] = Form("phi3"),
-    provider: Optional[str] = Form("mistral"),
-    temperature: float = Form(0.7),
-    file: Optional[UploadFile] = File(None),
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     image_path = None
     try:
         start_time = time.time()
-        if file:
-            # Save temporary file outside try so finally can see image_path
-            image_path = f"temp_agent_{file.filename}"
+        content_type = request.headers.get("Content-Type", "")
+        
+        if "application/json" in content_type:
+            data = await request.json()
+            task = data.get("task") or data.get("message")
+            conversation_id = data.get("conversation_id")
+            model = data.get("model", "mistral")
+            provider = data.get("provider", "mistral")
+            temperature = float(data.get("temperature", 0.7))
+            file_obj = None
+        else:
+            form = await request.form()
+            task = form.get("task") or form.get("message")
+            conversation_id = form.get("conversation_id")
+            model = form.get("model", "mistral")
+            provider = form.get("provider", "mistral")
+            temperature = float(form.get("temperature", 0.7) if form.get("temperature") else 0.7)
+            file_obj = form.get("file")
+
+        if not task:
+            raise HTTPException(status_code=422, detail="Missing 'task' or 'message' in request")
+
+        if conversation_id:
+            conversation_id = int(conversation_id)
+
+        if file_obj and hasattr(file_obj, "filename"):
+            image_path = f"temp_agent_{file_obj.filename}"
             with open(image_path, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
+                shutil.copyfileobj(file_obj.file, buffer)
 
         reply = run_agent_task(
             task,
@@ -328,7 +347,7 @@ async def agent_endpoint(
             chat_msg = ChatMessage(
                 conversation_id=conversation_id,
                 user_id=current_user.id,
-                message=f"[Image Attached] {task}" if file else task,
+                message=f"[Image Attached] {task}" if file_obj else task,
                 response=reply
             )
             db.add(chat_msg)
