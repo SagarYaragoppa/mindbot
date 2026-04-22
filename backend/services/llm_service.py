@@ -4,22 +4,29 @@ import traceback
 from backend.core.text_utils import sanitize_text, safe_response
 
 from dotenv import load_dotenv
-from mistralai.client import Mistral
 
 # Explicitly load the root .env file to avoid using dummy keys from subdirectories
 env_path = os.path.join(os.path.dirname(__file__), "../../.env")
 load_dotenv(dotenv_path=env_path, override=True)
 
-# Initialize Mistral client safely
-try:
-    api_key = os.getenv("MISTRAL_API_KEY")
-    client = Mistral(api_key=api_key) if api_key else None
-    if not client:
-        print("WARNING: MISTRAL_API_KEY not found. Mistral provider will be unavailable.")
-except Exception as e:
-    safe_error = sanitize_text(str(e))
-    print(f"CRITICAL: Failed to initialize Mistral client: {safe_error}")
-    client = None
+client = None
+
+def get_mistral_client():
+    global client
+    if client is not None:
+        return client
+    try:
+        api_key = os.getenv("MISTRAL_API_KEY")
+        if not api_key:
+            print("WARNING: MISTRAL_API_KEY not found. Mistral provider will be unavailable.")
+            return None
+        from mistralai.client import Mistral
+        client = Mistral(api_key=api_key)
+        return client
+    except Exception as e:
+        safe_error = sanitize_text(str(e))
+        print(f"CRITICAL: Failed to initialize Mistral client: {safe_error}")
+        return None
 
 DEFAULT_MISTRAL_MODEL = "mistral-small"
 
@@ -35,7 +42,8 @@ def generate_mistral_response(prompt: str, history: list = None) -> str:
     Sends a prompt to Mistral and returns plain text.
     Includes history if provided.
     """
-    if not client:
+    _client = get_mistral_client()
+    if not _client:
         return "Mistral API client is not initialized. Please check your MISTRAL_API_KEY."
         
     try:
@@ -53,7 +61,7 @@ def generate_mistral_response(prompt: str, history: list = None) -> str:
         # Prepare messages: history + current prompt
         messages = clean_history + [{"role": "user", "content": clean_prompt}]
         
-        chat_response = client.chat.complete(
+        chat_response = _client.chat.complete(
             model=DEFAULT_MISTRAL_MODEL,
             messages=messages,
         )

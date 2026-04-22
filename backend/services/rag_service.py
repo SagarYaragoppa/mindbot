@@ -2,8 +2,7 @@ import os
 import shutil
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import FAISS
-from langchain_mistralai import MistralAIEmbeddings
+
 
 from backend.services.llm_service import generate_chat_response
 from backend.core.text_utils import sanitize_text, safe_response
@@ -11,18 +10,29 @@ from backend.core.text_utils import sanitize_text, safe_response
 # Path to store FAISS index
 DB_PATH = "backend/data/faiss_index"
 
-# Embeddings enabled using Mistral Cloud API to save memory
-try:
-    api_key = os.getenv("MISTRAL_API_KEY")
-    if not api_key:
-        from dotenv import load_dotenv
-        load_dotenv()
-        api_key = os.getenv("MISTRAL_API_KEY")
+embeddings = None
 
-    embeddings = MistralAIEmbeddings(mistral_api_key=api_key) if api_key else None
-except Exception as e:
-    print(f"WARNING: Failed to load Mistral embeddings - {e}")
-    embeddings = None
+def get_embeddings():
+    global embeddings
+    if embeddings is not None:
+        return embeddings
+    try:
+        api_key = os.getenv("MISTRAL_API_KEY")
+        if not api_key:
+            from dotenv import load_dotenv
+            load_dotenv()
+            api_key = os.getenv("MISTRAL_API_KEY")
+
+        if api_key:
+            from langchain_mistralai import MistralAIEmbeddings
+            embeddings = MistralAIEmbeddings(mistral_api_key=api_key)
+        else:
+            print("WARNING: MISTRAL_API_KEY not found.")
+            embeddings = None
+    except Exception as e:
+        print(f"WARNING: Failed to load Mistral embeddings - {e}")
+        embeddings = None
+    return embeddings
 vector_store = None
 
 
@@ -61,11 +71,14 @@ def split_docs(docs):
 # -------------------------------
 # CREATE / UPDATE VECTOR STORE
 # -------------------------------
+def create_vector_store(chunks):
     global vector_store
     if not chunks:
         raise ValueError("No chunks to store!")
-    if embeddings:
-        vector_store = FAISS.from_documents(chunks, embeddings)
+    _embeddings = get_embeddings()
+    if _embeddings:
+        from langchain_community.vectorstores import FAISS
+        vector_store = FAISS.from_documents(chunks, _embeddings)
         vector_store.save_local(DB_PATH)
         print("Stored in FAISS")
     else:
@@ -75,14 +88,17 @@ def split_docs(docs):
 # -------------------------------
 # LOAD VECTOR STORE
 # -------------------------------
+def load_vector_store():
     global vector_store
-    if not embeddings:
+    _embeddings = get_embeddings()
+    if not _embeddings:
         return
     try:
+        from langchain_community.vectorstores import FAISS
         if os.path.exists(DB_PATH):
             vector_store = FAISS.load_local(
                 DB_PATH,
-                embeddings,
+                _embeddings,
                 allow_dangerous_deserialization=True
             )
             print("DEBUG: FAISS index loaded successfully")
@@ -150,6 +166,7 @@ def index_document(file_path, model=None, provider="mistral"):
 # -------------------------------
 # QUERY RAG
 # -------------------------------
+def query_rag(query: str, conversation_id: int = None, model: str = None, provider: str = "mistral"):
     safe_query_preview = sanitize_text(query[:50])
     print(f"DEBUG: RAG request received: '{safe_query_preview}...'")
     global vector_store
