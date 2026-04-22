@@ -1,26 +1,11 @@
 import React from 'react';
 import { X, Settings, Thermometer, Cloud } from 'lucide-react';
 
-export default function SettingsModal({ onClose, temperature, setTemperature, llmModel, setLlmModel, provider, setProvider }) {
+export default function SettingsModal({ onClose, temperature, setTemperature }) {
   
   const handleSave = () => {
     localStorage.setItem('mindbot_temp', temperature);
-    localStorage.setItem('mindbot_model', llmModel);
-    localStorage.setItem('mindbot_provider', provider);
     onClose();
-  };
-
-  const models = [
-    { name: 'Mistral Small', id: 'mistral-small', provider: 'mistral', category: 'Cloud' },
-  ];
-
-  const handleModelChange = (e) => {
-    const selectedId = e.target.value;
-    const modelObj = models.find(m => m.id === selectedId);
-    if (modelObj) {
-      setLlmModel(modelObj.id);
-      setProvider(modelObj.provider);
-    }
   };
 
   return (
@@ -41,27 +26,6 @@ export default function SettingsModal({ onClose, temperature, setTemperature, ll
         </h2>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
-          <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', fontWeight: 500 }}>
-              <Cloud size={16} /> Backend LLM Model
-            </label>
-            <select 
-              value={llmModel} 
-              onChange={handleModelChange}
-              style={{
-                width: '100%', padding: '0.75rem', borderRadius: '8px',
-                background: 'rgba(0,0,0,0.2)', color: '#fff',
-                border: '1px solid var(--border-color)',
-                fontSize: '0.9rem', outline: 'none', cursor: 'pointer'
-              }}
-            >
-              {models.map(m => (
-                <option key={m.id} value={m.id} style={{ background: '#1e293b' }}>
-                  {m.category}: {m.name}
-                </option>
-              ))}
-            </select>
-          </div>
 
           <div>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', fontWeight: 500 }}>

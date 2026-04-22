@@ -5,19 +5,18 @@ import AuthView from './components/AuthView';
 import AdminDashboard from './components/AdminDashboard';
 import SettingsModal from './components/SettingsModal';
 import axios from 'axios';
+import { Menu, X } from 'lucide-react';
 
 function App() {
   const [mode, setMode] = useState('chat');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem('mindbot-theme') || 'dark');
   
-  // Settings Logic Arrays
   const [temperature, setTemperature] = useState(parseFloat(localStorage.getItem('mindbot_temp')) || 0.7);
-  const [llmModel, setLlmModel] = useState(localStorage.getItem('mindbot_model') || 'mistral-small');
-  const [provider, setProvider] = useState(localStorage.getItem('mindbot_provider') || 'mistral');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -52,17 +51,27 @@ function App() {
 
   return (
     <div className="app-container">
-      <Sidebar 
-        mode={mode}
-        setMode={setMode} 
-        setToken={setToken} 
-        activeConversationId={activeConversationId} 
-        setActiveConversationId={setActiveConversationId} 
-        isAdmin={isAdmin}
-        onOpenSettings={() => setShowSettings(true)}
-        theme={theme}
-        setTheme={setTheme}
-      />
+      {/* Mobile Header Toggle */}
+      <div className="mobile-header">
+        <button className="btn-icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+          {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+        <h2 style={{ fontSize: '1.2rem', margin: 0, color: 'var(--accent-color)' }}>MindBot</h2>
+      </div>
+
+      <div className={`sidebar-container ${isSidebarOpen ? 'open' : ''}`}>
+        <Sidebar 
+          mode={mode}
+          setMode={setMode} 
+          setToken={setToken} 
+          activeConversationId={activeConversationId} 
+          setActiveConversationId={setActiveConversationId} 
+          isAdmin={isAdmin}
+          onOpenSettings={() => setShowSettings(true)}
+          theme={theme}
+          setTheme={setTheme}
+        />
+      </div>
       {mode === 'admin' ? (
         <AdminDashboard token={token} />
       ) : (
@@ -71,10 +80,7 @@ function App() {
           setMode={setMode}
           token={token} 
           activeConversationId={activeConversationId} 
-          setActiveConversationId={setActiveConversationId} 
           temperature={temperature}
-          llmModel={llmModel}
-          provider={provider}
         />
       )}
       
@@ -83,10 +89,6 @@ function App() {
           onClose={() => setShowSettings(false)} 
           temperature={temperature}
           setTemperature={setTemperature}
-          llmModel={llmModel}
-          setLlmModel={setLlmModel}
-          provider={provider}
-          setProvider={setProvider}
         />
       )}
     </div>

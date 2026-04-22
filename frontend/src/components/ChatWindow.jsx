@@ -24,7 +24,7 @@ function cleanResponse(text) {
   return cleaned || 'Something went wrong. Please try again.';
 }
 
-export default function ChatWindow({ mode, setMode, token, activeConversationId, llmModel, temperature, provider }) {
+export default function ChatWindow({ mode, setMode, token, activeConversationId, temperature }) {
   const [messages, setMessages] = useState([
     { role: 'bot', content: 'Hello! How can I help you today?' }
   ]);
@@ -215,8 +215,8 @@ export default function ChatWindow({ mode, setMode, token, activeConversationId,
           endpoint = `${import.meta.env.VITE_API_BASE_URL}/agent`;
           formData.append('task', finalPayloadText);
           if (activeConversationId) formData.append('conversation_id', activeConversationId);
-          formData.append('model', llmModel);
-          formData.append('provider', provider);
+          formData.append('model', 'mistral');
+          formData.append('provider', 'mistral');
           formData.append('temperature', temperature);
         } else {
           if (textToSend) formData.append('prompt', textToSend);
@@ -253,8 +253,8 @@ export default function ChatWindow({ mode, setMode, token, activeConversationId,
           body: JSON.stringify({ 
             message: finalPayloadText, 
             conversation_id: activeConversationId, 
-            model: llmModel, 
-            provider: provider,
+            model: 'mistral', 
+            provider: 'mistral',
             temperature: temperature 
           })
         });
@@ -274,9 +274,9 @@ export default function ChatWindow({ mode, setMode, token, activeConversationId,
                setMessages(prev => {
                  const newMessages = [...prev];
                  if (newMessages[newMessages.length - 1].content === 'Thinking...') {
-                   newMessages[newMessages.length - 1] = { role: 'bot', content: '', model: llmModel, provider: provider };
+                   newMessages[newMessages.length - 1] = { role: 'bot', content: '', model: 'mistral', provider: 'mistral' };
                  } else {
-                   newMessages.push({ role: 'bot', content: '', model: llmModel, provider: provider });
+                   newMessages.push({ role: 'bot', content: '', model: 'mistral', provider: 'mistral' });
                  }
                  return newMessages;
                });
@@ -308,16 +308,16 @@ export default function ChatWindow({ mode, setMode, token, activeConversationId,
           const formData = new FormData();
           formData.append('task', finalPayloadText);
           if (activeConversationId) formData.append('conversation_id', activeConversationId);
-          formData.append('model', llmModel);
-          formData.append('provider', provider);
+          formData.append('model', 'mistral');
+          formData.append('provider', 'mistral');
           formData.append('temperature', temperature);
           payload = formData;
         } else {
           payload = { 
             message: finalPayloadText,
             conversation_id: activeConversationId,
-            model: llmModel,
-            provider: provider
+            model: 'mistral',
+            provider: 'mistral'
           };
         }
         
@@ -328,8 +328,8 @@ export default function ChatWindow({ mode, setMode, token, activeConversationId,
         const reply = cleanResponse(rawReply);
         const metadata = {
           latency_ms: res.data.latency_ms || (Date.now() - startTime),
-          model: res.data.model || llmModel,
-          provider: res.data.provider || provider
+          model: res.data.model || 'mistral',
+          provider: res.data.provider || 'mistral'
         };
         
         setMessages(prev => {

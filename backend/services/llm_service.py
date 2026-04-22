@@ -22,8 +22,6 @@ except Exception as e:
     client = None
 
 DEFAULT_MISTRAL_MODEL = "mistral-small"
-OLLAMA_URL = "http://localhost:11434/api/generate"
-OLLAMA_CHAT_URL = "http://localhost:11434/api/chat"
 
 # In-memory memory storage: conversation_id -> list of messages
 # Format: {"role": "user"|"assistant", "content": str}
@@ -73,63 +71,13 @@ def generate_mistral_response(prompt: str, history: list = None) -> str:
         return f"Mistral API Error: {error_msg}"
 
 
-def generate_local_response(prompt: str, model: str = "phi3", history: list = None) -> str:
-    """
-    Sends a prompt to local Ollama instance using the chat endpoint for history support.
-    """
-    try:
-        # Fallback to phi3 if model is not specified or looks like a mistral model
-        local_model = model if model and "mistral" not in model.lower() else "phi3"
-        
-        # Sanitize prompt before sending to model
-        clean_prompt = sanitize_text(prompt, remove_emojis=True)
-        
-        # Sanitize all history entries before sending
-        clean_history = []
-        for msg in (history or []):
-            clean_history.append({
-                "role": msg.get("role", "user"),
-                "content": sanitize_text(str(msg.get("content", "")), remove_emojis=True)
-            })
-        
-        # Prepare messages: history + current prompt
-        messages = clean_history + [{"role": "user", "content": clean_prompt}]
-        
-        payload = {
-            "model": local_model,
-            "messages": messages,
-            "stream": False
-        }
-        
-        response = requests.post(OLLAMA_CHAT_URL, json=payload, timeout=30)
-        if response.status_code == 200:
-            return response.json().get("message", {}).get("content", "No local response content.")
-        else:
-            return f"Ollama Error ({response.status_code}): {response.text}"
-    except Exception as e:
-        safe_error = sanitize_text(str(e))
-        print(f"ERROR [Local LLM]: {safe_error}")
-        return f"Local LLM (Ollama) failed. Is Ollama running? Error: {safe_error}"
-
-
 def generate_response(prompt: str, provider: str = "mistral", model: str = None, history: list = None) -> str:
     """
     Main entry point for generating a response.
-    Routes to Mistral or Ollama based on the provider.
+    Always routes to Mistral.
     """
     try:
-        # Heuristic: If provider is mistral but model looks local, switch to local
-        if provider == "mistral" and model:
-            local_keywords = ["phi3", "tinyllama", "llama3", "llava"]
-            if any(k in model.lower() for k in local_keywords):
-                provider = "local"
-
-        if provider == "mistral":
-            return generate_mistral_response(prompt, history=history)
-        elif provider == "local":
-            return generate_local_response(prompt, model=model, history=history)
-        else:
-            return generate_mistral_response(prompt, history=history)
+        return generate_mistral_response(prompt, history=history)
     except Exception as e:
         safe_error = sanitize_text(str(e))
         print(f"ERROR [LLM routing]: {safe_error}")
