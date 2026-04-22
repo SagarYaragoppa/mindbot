@@ -181,44 +181,53 @@ def query_rag(query: str, conversation_id: int = None, model: str = None, provid
         try:
             if not hasattr(vector_store, 'index') or vector_store.index.ntotal > 0:
                 print(f"DEBUG: Searching vector store.")
-                # Limit to 1 chunk to keep context tight and memory low
-                docs = vector_store.similarity_search(actual_query, k=1)
+                # Use top 2 chunks max
+                docs = vector_store.similarity_search(actual_query, k=2)
                 print(f"DEBUG: Documents retrieved: {len(docs)}")
         except Exception as e:
             safe_error = sanitize_text(str(e))
             print(f"DEBUG: similarity_search error: {safe_error}")
 
-    sections = []
-    system_instructions = (
-        "Instructions:\n"
-        "- Answer the following question based ONLY on the provided context.\n"
-        "- Be clear, concise, and professional.\n"
-        "- If the information is not present in the context, say 'Not found in document'."
-    )
-    sections.append(system_instructions)
+    # Join clean context: Limit to 300 chars per chunk
+    context = "\n\n".join([doc.page_content[:300] for doc in docs]) if docs else ""
 
-    if docs:
-        raw_context = "\\n---\\n".join([doc.page_content.strip() for doc in docs])
-        context = raw_context[:800] # Hard cap for memory
-        sections.append(f"Context:\\n{context}")
+    # Updated prompt
+    prompt = f"""You are an intelligent assistant.
 
-    sections.append(f"Question:\\n{actual_query}")
-    final_prompt = "\\n\\n".join(sections)
+Answer the user's question using ONLY the provided context.
 
-    answer = generate_chat_response(final_prompt, model=model, provider=provider, conversation_id=conversation_id)
-    clean_answer = safe_response(answer) if answer else "Something went wrong. Please try again."
+Rules:
+- If answer exists → explain clearly in simple terms
+- If partially available → summarize best possible answer
+- If not found → say: "The document does not contain a clear answer."
 
-    if docs:
-        source_text = "\\n\\n### Sources\\n"
-        for i, doc in enumerate(docs):
-            source_path = doc.metadata.get("source", "Unknown Document")
-            source_name = os.path.basename(source_path)
-            chunk = doc.page_content.replace("\\n", " ").strip()
-            truncated_chunk = chunk[:100] + "..." if len(chunk) > 100 else chunk
-            source_text += f"{i+1}. **{source_name}**: \\\"{truncated_chunk}\\\"\\n"
-        return f"{clean_answer}{source_text}"
+- DO NOT return raw chunks
+- DO NOT include 'Sources', '###', or filenames
+- DO NOT include newline escape characters like \\n
 
-    return clean_answer
+Context:
+{context}
+
+Question:
+{actual_query}
+
+Answer:"""
+
+    response = generate_chat_response(prompt, model=model, provider=provider, conversation_id=conversation_id)
+    
+    if not response:
+        return "Something went wrong. Please try again."
+
+    # Clean response before returning
+    response = response.replace("\\n", "\n")
+    response = response.replace("###", "")
+    response = response.strip()
+
+    # Fallback check
+    if not response or response.lower().strip(".") == "not found in document":
+         response = "The document does not contain a clear answer."
+
+    return response
 
 
 # -------------------------------
