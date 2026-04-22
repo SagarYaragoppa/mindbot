@@ -5,6 +5,11 @@ export default function SettingsModal({ onClose, temperature, setTemperature }) 
 
   const handleSave = () => {
     localStorage.setItem('mindbot_temp', temperature);
+    // Nuke any stale model/provider keys — belt-and-suspenders cleanup
+    ['mindbot_model', 'mindbot_provider', 'llm_model', 'llm_provider',
+     'model', 'provider', 'selectedModel', 'selected_model'].forEach(k =>
+      localStorage.removeItem(k)
+    );
     onClose();
   };
 

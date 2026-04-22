@@ -6,7 +6,24 @@ import AdminDashboard from './components/AdminDashboard';
 import SettingsModal from './components/SettingsModal';
 import axios from 'axios';
 
-// Fixed model constants — only Mistral Cloud
+// ─── ONE-TIME localStorage PURGE ───────────────────────────────────────────
+// Runs immediately when the JS bundle loads (before any React render).
+// Removes ALL stale model/provider keys that old deployments may have written.
+// This is the permanent fix for browsers that still have cached model data.
+const STALE_KEYS = [
+  'mindbot_model',
+  'mindbot_provider',
+  'llm_model',
+  'llm_provider',
+  'model',
+  'provider',
+  'selectedModel',
+  'selected_model',
+];
+STALE_KEYS.forEach(k => localStorage.removeItem(k));
+// ───────────────────────────────────────────────────────────────────────────
+
+// Fixed model constants — only Mistral Cloud. Never read from localStorage.
 const FIXED_MODEL = 'mistral';
 const FIXED_PROVIDER = 'mistral';
 
