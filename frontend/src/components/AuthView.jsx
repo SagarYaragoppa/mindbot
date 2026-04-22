@@ -7,11 +7,13 @@ export default function AuthView({ setToken }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccessMsg('');
     setLoading(true);
 
     try {
@@ -22,10 +24,15 @@ export default function AuthView({ setToken }) {
       const res = await axios.post(endpoint, { username, password });
 
       if (isLogin) {
+        // Clear any stale session data before setting the new token
+        localStorage.removeItem('token');
+        delete axios.defaults.headers.common['Authorization'];
         setToken(res.data.access_token);
       } else {
+        setSuccessMsg('Registered successfully! You can now log in.');
         setIsLogin(true);
-        setError('Registered successfully! You can now log in.');
+        setUsername('');
+        setPassword('');
       }
     } catch (err) {
       setError(err.response?.data?.detail || 'An error occurred. Please try again.');
@@ -33,8 +40,6 @@ export default function AuthView({ setToken }) {
       setLoading(false);
     }
   };
-
-  const isSuccess = !isLogin && error.startsWith('Registered');
 
   return (
     <div className="auth-wrapper">
@@ -46,10 +51,11 @@ export default function AuthView({ setToken }) {
           <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.3rem' }}>MindBot — AI Assistant</p>
         </div>
 
+        {successMsg && (
+          <div className="auth-success">{successMsg}</div>
+        )}
         {error && (
-          <div className={isSuccess ? 'auth-success' : 'auth-error'}>
-            {error}
-          </div>
+          <div className="auth-error">{error}</div>
         )}
 
         <form className="auth-form" onSubmit={handleSubmit}>
