@@ -1,93 +1,88 @@
+import React from 'react';
 import { Send, Mic, Square, Image as ImageIcon, Bot, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-export default function GeneralChatView({ 
-  messages, input, setInput, handleSend, handleClearChat, loading, recording, 
-  toggleRecording, imageFile, setImageFile, isSpeechSupported, 
-  endOfMessagesRef, mode, setMode 
+export default function GeneralChatView({
+  messages, input, setInput, handleSend, handleClearChat, loading, recording,
+  toggleRecording, imageFile, setImageFile, isSpeechSupported,
+  endOfMessagesRef, mode, setMode
 }) {
   return (
-    <div className="main-chat mode-chat flex flex-col h-full bg-transparent overflow-hidden">
-      <div className="mode-header flex flex-col sm:flex-row items-center justify-between p-4 sm:p-6 gap-4 glass-panel border-0 border-b border-border-color rounded-none sm:rounded-t-3xl">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="mode-badge bg-accent-color/20 text-accent-color border border-accent-color/30 text-[10px] sm:text-xs">General</div>
-          <h3 className="text-base sm:text-lg font-bold m-0">MindBot Chat</h3>
+    <div className="main-chat mode-chat">
+      {/* Header */}
+      <div className="mode-header">
+        <div className="mode-header-left">
+          <span className="mode-badge chat-badge">General</span>
+          <h3 className="mode-title">MindBot Chat</h3>
         </div>
-        
-        <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-5 w-full sm:w-auto">
-          {/* Mode Toggle */}
-          <div className="toggle-container scale-90 sm:scale-100">
-            <span className={`toggle-label ${mode === 'chat' ? 'active' : ''}`}>General</span>
+        <div className="mode-header-right">
+          {/* Mode toggle */}
+          <div className="toggle-container">
+            <span className={`toggle-label${mode === 'chat' ? ' active' : ''}`}>General</span>
             <label className="switch">
-              <input 
-                type="checkbox" 
-                checked={mode === 'rag'} 
+              <input
+                type="checkbox"
+                checked={mode === 'rag'}
                 onChange={(e) => setMode(e.target.checked ? 'rag' : 'chat')}
               />
-              <span className="slider"></span>
+              <span className="slider" />
             </label>
-            <span className={`toggle-label ${mode === 'rag' ? 'active' : ''}`}>Docs</span>
+            <span className={`toggle-label${mode === 'rag' ? ' active' : ''}`}>Docs</span>
           </div>
-
-          <button 
-            onClick={handleClearChat} 
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-red-500 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-all shrink-0"
-            title="Clear Chat"
-          >
-            <Trash2 size={14} /> <span className="hidden xs:inline">Reset</span>
+          <button className="clear-btn" onClick={handleClearChat} title="Clear Chat">
+            <Trash2 size={13} /> Reset
           </button>
-          
-          <Bot size={20} className="opacity-40 hidden sm:block" />
+          <Bot size={18} style={{ opacity: 0.3 }} />
         </div>
       </div>
-      
-      <div className="chat-history flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+
+      {/* Messages */}
+      <div className="chat-history">
         {messages.map((msg, idx) => (
-          <div key={idx} className={`message ${msg.role} text-sm sm:text-base max-w-[90%] sm:max-w-[80%]`}>
+          <div key={idx} className={`message ${msg.role}`}>
             {msg.role === 'bot' ? (
-              <div className="bot-response-container prose prose-invert prose-sm sm:prose-base max-w-none">
-                <ReactMarkdown 
+              <div className="bot-response-container">
+                <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
-                    code({node, inline, className, children, ...props}) {
+                    code({ node, inline, className, children, ...props }) {
                       const match = /language-(\w+)/.exec(className || '');
                       return !inline && match ? (
-                        <div className="relative my-4 rounded-xl overflow-hidden border border-white/10">
-                          <div className="bg-black/40 px-4 py-1.5 text-[10px] sm:text-xs text-text-secondary flex justify-between items-center border-b border-white/5">
-                            <span className="font-mono uppercase">{match[1]}</span>
-                            <button 
-                              onClick={() => navigator.clipboard.writeText(String(children))} 
-                              className="text-accent-color hover:text-white transition-colors"
+                        <div style={{ position: 'relative', margin: '0.75rem 0', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+                          <div style={{ background: 'rgba(0,0,0,0.4)', padding: '0.4rem 1rem', fontSize: '0.68rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                            <span style={{ fontFamily: 'monospace', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>{match[1]}</span>
+                            <button
+                              onClick={() => navigator.clipboard.writeText(String(children))}
+                              style={{ background: 'none', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}
                             >
                               Copy
                             </button>
                           </div>
-                          <SyntaxHighlighter 
-                            style={vscDarkPlus} 
-                            language={match[1]} 
-                            PreTag="div" 
-                            customStyle={{ margin: 0, padding: '1rem', fontSize: '0.8rem' }} 
+                          <SyntaxHighlighter
+                            style={vscDarkPlus}
+                            language={match[1]}
+                            PreTag="div"
+                            customStyle={{ margin: 0, padding: '1rem', fontSize: '0.8rem', background: 'transparent' }}
                             {...props}
                           >
                             {String(children).replace(/\n$/, '')}
                           </SyntaxHighlighter>
                         </div>
                       ) : (
-                        <code className="bg-black/30 px-1.5 py-0.5 rounded text-accent-color" {...props}>
+                        <code style={{ background: 'rgba(0,0,0,0.3)', padding: '0.15rem 0.4rem', borderRadius: '5px', color: 'var(--accent-color)', fontSize: '0.85em' }} {...props}>
                           {children}
                         </code>
-                      )
+                      );
                     }
                   }}
                 >
                   {msg.content}
                 </ReactMarkdown>
-
                 {msg.latency_ms && (
-                  <div className="msg-meta flex gap-3 text-[10px] sm:text-xs opacity-50 mt-3 font-mono">
+                  <div className="msg-meta">
                     <span>⚡ {(msg.latency_ms / 1000).toFixed(2)}s</span>
                     <span>🤖 {msg.model || 'mistral'}</span>
                   </div>
@@ -99,57 +94,57 @@ export default function GeneralChatView({
         <div ref={endOfMessagesRef} />
       </div>
 
-      <div className="chat-input-area p-4 sm:p-6 flex flex-col gap-3 relative">
+      {/* Input area */}
+      <div className="chat-input-area">
         {imageFile && (
-          <div className="absolute -top-12 left-6 bg-accent-color p-2 px-4 rounded-full text-xs flex items-center gap-2 text-white shadow-lg shadow-black/20 animate-in fade-in slide-in-from-bottom-2">
-            <ImageIcon size={14} /> 
-            <span className="max-w-[150px] truncate">{imageFile.name}</span>
-            <button onClick={() => setImageFile(null)} className="hover:scale-125 transition-transform">✕</button>
+          <div className="image-badge">
+            <ImageIcon size={13} />
+            <span>{imageFile.name}</span>
+            <button onClick={() => setImageFile(null)}>✕</button>
           </div>
         )}
-        
         {recording && (
-          <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-red-500 p-2 px-4 rounded-full text-xs font-bold flex items-center gap-2 text-white shadow-lg animate-pulse">
-            <Mic size={14} /> Listening...
+          <div className="listening-badge">
+            <Mic size={13} /> Listening...
           </div>
         )}
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="flex gap-2 shrink-0">
+        <div className="chat-input-row">
+          <div className="chat-input-left-btns">
             {isSpeechSupported && (
-              <button 
-                className={`btn p-3 rounded-xl ${recording ? 'pulse-animation' : 'btn-secondary'}`} 
-                onClick={toggleRecording} 
+              <button
+                className={`btn btn-icon${recording ? ' pulse-animation' : ' btn-secondary'}`}
+                onClick={toggleRecording}
                 disabled={loading}
+                title={recording ? 'Stop recording' : 'Start voice input'}
               >
-                {recording ? <Square size={20} /> : <Mic size={20} />}
+                {recording ? <Square size={18} /> : <Mic size={18} />}
               </button>
             )}
-            
-            <label className="btn btn-secondary p-3 rounded-xl cursor-pointer">
-              <ImageIcon size={20} />
-              <input type="file" accept="image/*" className="hidden" onChange={(e) => setImageFile(e.target.files[0])} />
+            <label className="btn btn-secondary btn-icon" style={{ cursor: 'pointer' }} title="Attach image">
+              <ImageIcon size={18} />
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => setImageFile(e.target.files[0])} />
             </label>
           </div>
 
-          <div className="flex-1 flex flex-col sm:flex-row gap-2 sm:gap-3 bg-black/20 p-1 sm:p-2 rounded-2xl border border-white/5 focus-within:border-accent-color/50 transition-colors">
-            <input 
-              type="text" 
-              placeholder={recording ? "Recording..." : "Message MindBot..." }
-              className="flex-1 bg-transparent border-none p-3 text-sm sm:text-base outline-none disabled:opacity-50"
+          <div className="chat-input-box">
+            <input
+              type="text"
+              placeholder={recording ? 'Recording...' : 'Message MindBot...'}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
               disabled={recording}
             />
-            <button 
-              className="btn w-full sm:w-auto px-6 h-12 rounded-xl shrink-0 text-sm sm:text-base" 
-              onClick={() => handleSend()} 
-              disabled={loading || recording || (!input.trim() && !imageFile)}
-            >
-              <Send size={18} /> Send
-            </button>
           </div>
+
+          <button
+            className="btn chat-send-btn"
+            onClick={() => handleSend()}
+            disabled={loading || recording || (!input.trim() && !imageFile)}
+          >
+            <Send size={16} /> <span>Send</span>
+          </button>
         </div>
       </div>
     </div>

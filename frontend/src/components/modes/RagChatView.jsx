@@ -1,59 +1,58 @@
+import React from 'react';
 import { Send, Mic, Square, FileText, Search, Database, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-export default function RagChatView({ 
-  messages, input, setInput, handleSend, handleClearChat, loading, recording, 
+export default function RagChatView({
+  messages, input, setInput, handleSend, handleClearChat, loading, recording,
   toggleRecording, isSpeechSupported, endOfMessagesRef, hasDocs,
-  mode, setMode 
+  mode, setMode
 }) {
   return (
-    <div className="main-chat mode-rag flex flex-col h-full bg-transparent overflow-hidden">
-      <div className="mode-header flex flex-col sm:flex-row items-center justify-between p-4 sm:p-6 gap-4 glass-panel border-0 border-b border-border-color rounded-none sm:rounded-t-3xl">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="mode-badge bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 text-[10px] sm:text-xs">Knowledge Base</div>
-          <h3 className="text-base sm:text-lg font-bold m-0">Document Q&A</h3>
+    <div className="main-chat mode-rag">
+      {/* Header */}
+      <div className="mode-header">
+        <div className="mode-header-left">
+          <span className="mode-badge rag-badge">Knowledge Base</span>
+          <h3 className="mode-title">Document Q&amp;A</h3>
         </div>
-
-        <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-5 w-full sm:w-auto">
-          {/* Mode Toggle */}
-          <div className="toggle-container scale-90 sm:scale-100">
-            <span className={`toggle-label ${mode === 'chat' ? 'active' : ''}`}>General</span>
+        <div className="mode-header-right">
+          {/* Mode toggle */}
+          <div className="toggle-container">
+            <span className={`toggle-label${mode === 'chat' ? ' active' : ''}`}>General</span>
             <label className="switch">
-              <input 
-                type="checkbox" 
-                checked={mode === 'rag'} 
+              <input
+                type="checkbox"
+                checked={mode === 'rag'}
                 onChange={(e) => setMode(e.target.checked ? 'rag' : 'chat')}
               />
-              <span className="slider"></span>
+              <span className="slider" />
             </label>
-            <span className={`toggle-label ${mode === 'rag' ? 'active' : ''}`}>Docs</span>
+            <span className={`toggle-label${mode === 'rag' ? ' active' : ''}`}>Docs</span>
           </div>
 
-          <button 
-            onClick={handleClearChat} 
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-red-500 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-all shrink-0"
-            title="Clear Chat history"
-          >
-            <Trash2 size={14} /> <span className="hidden xs:inline">Reset</span>
+          <button className="clear-btn" onClick={handleClearChat} title="Clear Chat">
+            <Trash2 size={13} /> Reset
           </button>
 
-          <div className={`flex items-center gap-2 text-[10px] sm:text-xs font-medium shrink-0 ${hasDocs ? 'text-emerald-500' : 'text-red-400'}`}>
-            <Database size={14} />
-            <span className="hidden xs:inline">{hasDocs ? 'Vector Store Active' : 'No Docs Found'}</span>
+          <div className={`db-status${hasDocs ? ' active' : ' inactive'}`}>
+            <Database size={13} />
+            <span>{hasDocs ? 'Store Active' : 'No Docs'}</span>
           </div>
         </div>
       </div>
 
+      {/* No docs warning */}
       {!hasDocs && (
-        <div className="px-6 py-2 bg-red-500/10 text-red-400 text-xs border-b border-red-500/20 animate-pulse">
+        <div className="no-docs-banner">
           ⚠️ No documents indexed. Standard chat will be used until files are uploaded.
         </div>
       )}
-      
-      <div className="chat-history flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+
+      {/* Messages */}
+      <div className="chat-history">
         {messages.map((msg, idx) => {
           const isBot = msg.role === 'bot';
           let mainContent = msg.content;
@@ -65,53 +64,51 @@ export default function RagChatView({
             sourceContent = parts[1];
           }
 
-          // Keyword Highlighting Logic
           const renderWithHighlights = (text) => {
             const lastUserMsg = [...messages.slice(0, idx)].reverse().find(m => m.role === 'user');
-            const query = lastUserMsg ? lastUserMsg.content.toLowerCase() : "";
+            const query = lastUserMsg ? lastUserMsg.content.toLowerCase() : '';
             const words = query.split(/\s+/).filter(w => w.length > 3);
-            
-            if (words.length === 0) return <div className="whitespace-pre-wrap">{text}</div>;
+            if (words.length === 0) return <div style={{ whiteSpace: 'pre-wrap' }}>{text}</div>;
 
             let highlighted = text;
             words.forEach(word => {
               const regex = new RegExp(`(${word})`, 'gi');
-              highlighted = highlighted.replace(regex, '<span class="bg-yellow-500/20 text-white border-b border-yellow-400">$1</span>');
+              highlighted = highlighted.replace(regex, '<mark style="background:rgba(234,179,8,0.2);color:inherit;border-bottom:1px solid rgba(234,179,8,0.6);border-radius:2px;">$1</mark>');
             });
-            return <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: highlighted }} />;
+            return <div style={{ whiteSpace: 'pre-wrap' }} dangerouslySetInnerHTML={{ __html: highlighted }} />;
           };
 
           return (
-            <div key={idx} className={`message ${msg.role} text-sm sm:text-base max-w-[90%] sm:max-w-[80%]`}>
+            <div key={idx} className={`message ${msg.role}`}>
               {isBot ? (
-                <div className="bot-response-container prose prose-invert prose-sm sm:prose-base max-w-none">
+                <div className="bot-response-container">
                   {sourceContent && (
-                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase text-emerald-500 mb-3 tracking-wider">
-                      <FileText size={12} /> Document Based Response
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', color: '#34d399', marginBottom: '0.5rem', letterSpacing: '0.08em' }}>
+                      <FileText size={11} /> Document Based Response
                     </div>
                   )}
-                  <ReactMarkdown 
+                  <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
-                      code({node, inline, className, children, ...props}) {
+                      code({ node, inline, className, children, ...props }) {
                         const match = /language-(\w+)/.exec(className || '');
                         return !inline && match ? (
-                          <div className="relative my-4 rounded-xl overflow-hidden border border-white/10">
-                            <SyntaxHighlighter 
-                              style={vscDarkPlus} 
-                              language={match[1]} 
-                              PreTag="div" 
-                              customStyle={{ margin: 0, padding: '1rem', fontSize: '0.8rem' }} 
+                          <div style={{ margin: '0.75rem 0', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+                            <SyntaxHighlighter
+                              style={vscDarkPlus}
+                              language={match[1]}
+                              PreTag="div"
+                              customStyle={{ margin: 0, padding: '1rem', fontSize: '0.8rem' }}
                               {...props}
                             >
                               {String(children).replace(/\n$/, '')}
                             </SyntaxHighlighter>
                           </div>
                         ) : (
-                          <code className="bg-black/30 px-1.5 py-0.5 rounded text-emerald-500" {...props}>
+                          <code style={{ background: 'rgba(0,0,0,0.3)', padding: '0.15rem 0.4rem', borderRadius: '5px', color: '#34d399', fontSize: '0.85em' }} {...props}>
                             {children}
                           </code>
-                        )
+                        );
                       }
                     }}
                   >
@@ -119,18 +116,18 @@ export default function RagChatView({
                   </ReactMarkdown>
 
                   {msg.latency_ms && (
-                    <div className="msg-meta flex gap-3 text-[10px] opacity-50 mt-3 font-mono">
+                    <div className="msg-meta">
                       <span>⚡ {(msg.latency_ms / 1000).toFixed(2)}s</span>
                       <span>🤖 {msg.model || 'mistral'}</span>
                     </div>
                   )}
 
                   {sourceContent && (
-                    <div className="source-section mt-6 p-4 bg-emerald-500/5 rounded-xl border border-emerald-500/20 border-l-4 border-l-emerald-500">
-                      <div className="source-header flex items-center gap-2 font-bold text-emerald-500 text-[10px] uppercase mb-2 tracking-widest">
-                        <Search size={14} /> Citations & Sources
+                    <div className="source-section">
+                      <div className="source-header">
+                        <Search size={13} /> Citations &amp; Sources
                       </div>
-                      <div className="text-xs sm:text-sm opacity-90 leading-relaxed text-text-primary">
+                      <div className="source-content">
                         {renderWithHighlights(sourceContent)}
                       </div>
                     </div>
@@ -143,42 +140,47 @@ export default function RagChatView({
         <div ref={endOfMessagesRef} />
       </div>
 
-      <div className="chat-input-area p-4 sm:p-6 flex flex-col gap-3 relative">
+      {/* Input area */}
+      <div className="chat-input-area">
         {recording && (
-          <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-red-500 p-2 px-4 rounded-full text-xs font-bold flex items-center gap-2 text-white shadow-lg animate-pulse">
-            <Mic size={14} /> Listening...
+          <div className="listening-badge">
+            <Mic size={13} /> Listening...
           </div>
         )}
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          {isSpeechSupported && (
-            <button 
-              className={`btn p-3 rounded-xl shrink-0 ${recording ? 'pulse-animation' : 'btn-secondary'}`} 
-              onClick={toggleRecording} 
-              disabled={loading}
-            >
-              {recording ? <Square size={20} /> : <Mic size={20} />}
-            </button>
-          )}
-          
-          <div className="flex-1 flex flex-col sm:flex-row gap-2 sm:gap-3 bg-black/20 p-1 sm:p-2 rounded-2xl border border-white/5 focus-within:border-emerald-500/50 transition-colors">
-            <input 
-              type="text" 
-              placeholder={recording ? "Recording..." : "Ask your documents..." }
-              className="flex-1 bg-transparent border-none p-3 text-sm sm:text-base outline-none disabled:opacity-50"
+        <div className="chat-input-row">
+          <div className="chat-input-left-btns">
+            {isSpeechSupported && (
+              <button
+                className={`btn btn-icon${recording ? ' pulse-animation' : ' btn-secondary'}`}
+                onClick={toggleRecording}
+                disabled={loading}
+                title={recording ? 'Stop recording' : 'Start voice input'}
+              >
+                {recording ? <Square size={18} /> : <Mic size={18} />}
+              </button>
+            )}
+          </div>
+
+          <div className="chat-input-box" style={{ '--focus-color': 'rgba(16,185,129,0.5)' }}>
+            <input
+              type="text"
+              placeholder={recording ? 'Recording...' : 'Ask your documents...'}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
               disabled={recording}
             />
-            <button 
-              className="btn w-full sm:w-auto px-6 h-12 rounded-xl shrink-0 !bg-emerald-600 hover:!bg-emerald-500 text-sm sm:text-base" 
-              onClick={() => handleSend()} 
-              disabled={loading || recording || !input.trim()}
-            >
-              <Search size={18} /> Query
-            </button>
           </div>
+
+          <button
+            className="btn chat-send-btn"
+            style={{ background: '#059669' }}
+            onClick={() => handleSend()}
+            disabled={loading || recording || !input.trim()}
+          >
+            <Search size={16} /> <span>Query</span>
+          </button>
         </div>
       </div>
     </div>

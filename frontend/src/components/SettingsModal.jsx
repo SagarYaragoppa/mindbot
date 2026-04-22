@@ -1,86 +1,68 @@
 import React from 'react';
 import { X, Settings, Thermometer, Cloud } from 'lucide-react';
 
-const MODELS = [
-  { value: "mistral", label: "Mistral (Cloud)" }
-];
+export default function SettingsModal({ onClose, temperature, setTemperature }) {
 
-export default function SettingsModal({ onClose, temperature, setTemperature, llmModel, setLlmModel, provider, setProvider }) {
-  
   const handleSave = () => {
     localStorage.setItem('mindbot_temp', temperature);
-    localStorage.setItem('mindbot_model', llmModel);
-    localStorage.setItem('mindbot_provider', provider);
     onClose();
   };
 
-  const handleModelChange = (e) => {
-    const selectedValue = e.target.value;
-    const modelObj = MODELS.find(m => m.value === selectedValue);
-    if (modelObj) {
-      setLlmModel(modelObj.value);
-      setProvider('mistral');
-    }
-  };
-
   return (
-    <div className="fixed inset-0 w-full h-full bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
-      <div className="glass-panel w-[90%] sm:w-[400px] p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto mx-auto">
-        <X 
-          size={24} 
-          onClick={onClose} 
-          className="absolute top-6 right-6 cursor-pointer text-text-secondary hover:text-white transition-colors"
-        />
-        
-        <h2 className="flex items-center gap-2 mb-6 text-xl sm:text-2xl font-bold text-accent-color">
-          <Settings size={24} /> Configuration
+    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="glass-panel modal-card">
+        <button className="modal-close-btn" onClick={onClose} aria-label="Close settings">
+          <X size={20} />
+        </button>
+
+        <h2 className="modal-title">
+          <Settings size={22} /> Configuration
         </h2>
 
-        <div className="flex flex-col gap-6 mb-8">
-          <div>
-            <label className="flex items-center gap-2 mb-2 font-medium text-sm sm:text-base">
-              <Cloud size={16} /> Backend LLM Model
-            </label>
-            <select 
-              value={llmModel} 
-              onChange={handleModelChange}
-              disabled={true}
-              className="w-full p-3 rounded-lg bg-black/20 text-white border border-border-color text-sm sm:text-base outline-none cursor-not-allowed opacity-80"
-            >
-              {MODELS.map(m => (
-                <option key={m.value} value={m.value} className="bg-[#1e293b]">
-                  {m.label}
-                </option>
-              ))}
-            </select>
-            <p className="text-[10px] sm:text-xs text-text-secondary mt-1 ml-1 italic">* Exclusive cloud model for stability</p>
+        {/* Model display — read-only */}
+        <div className="modal-field">
+          <label className="modal-label">
+            <Cloud size={15} /> Backend LLM Model
+          </label>
+          <div style={{
+            background: 'rgba(59,130,246,0.08)',
+            border: '1px solid rgba(59,130,246,0.25)',
+            borderRadius: '10px',
+            padding: '0.75rem 1rem',
+            fontSize: '0.875rem',
+            color: '#93c5fd',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <Cloud size={14} /> Mistral Cloud
           </div>
+          <p className="modal-hint">* Exclusive cloud model — optimised for reliability</p>
+        </div>
 
-          <div>
-            <label className="flex items-center gap-2 mb-2 font-medium text-sm sm:text-base">
-              <Thermometer size={16} /> Inference Temperature: {temperature}
-            </label>
-            <input 
-              type="range" 
-              min="0.0" 
-              max="1.0" 
-              step="0.1" 
-              value={temperature} 
-              onChange={(e) => setTemperature(parseFloat(e.target.value))}
-              className="w-full cursor-pointer h-2 bg-black/20 rounded-lg appearance-none accent-accent-color"
-            />
-            <div className="flex justify-between text-[10px] sm:text-xs text-text-secondary mt-2">
-              <span>Deterministic</span>
-              <span>Creative</span>
-            </div>
+        {/* Temperature slider */}
+        <div className="modal-field">
+          <label className="modal-label">
+            <Thermometer size={15} /> Inference Temperature: <strong style={{ color: 'var(--accent-color)', marginLeft: '0.25rem' }}>{temperature}</strong>
+          </label>
+          <input
+            type="range"
+            min="0.0"
+            max="1.0"
+            step="0.1"
+            value={temperature}
+            onChange={(e) => setTemperature(parseFloat(e.target.value))}
+          />
+          <div className="range-labels">
+            <span>🎯 Deterministic</span>
+            <span>✨ Creative</span>
           </div>
         </div>
 
-        <div className="flex justify-center mt-6">
-          <button className="btn w-full sm:w-auto px-10 text-sm sm:text-base py-3" onClick={handleSave}>
-            Confirm & Save
-          </button>
-        </div>
+        <button className="btn modal-save-btn" onClick={handleSave}>
+          Confirm &amp; Save
+        </button>
       </div>
     </div>
   );

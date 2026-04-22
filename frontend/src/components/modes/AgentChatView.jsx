@@ -1,93 +1,90 @@
+import React from 'react';
 import { Send, Mic, Square, Cpu, Terminal, Zap, CheckCircle2, Image as ImageIcon, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-export default function AgentChatView({ 
-  messages, input, setInput, handleSend, handleClearChat, loading, recording, 
-  toggleRecording, imageFile, setImageFile, isSpeechSupported, endOfMessagesRef 
+export default function AgentChatView({
+  messages, input, setInput, handleSend, handleClearChat, loading, recording,
+  toggleRecording, imageFile, setImageFile, isSpeechSupported, endOfMessagesRef
 }) {
   return (
-    <div className="main-chat mode-agent flex flex-col h-full bg-transparent overflow-hidden">
-      <div className="mode-header flex flex-col sm:flex-row items-center justify-between p-4 sm:p-6 gap-4 glass-panel border-0 border-b border-border-color rounded-none sm:rounded-t-3xl">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="mode-badge bg-violet-500/20 text-violet-400 border border-violet-500/30 text-[10px] sm:text-xs uppercase">Autonomous Agent</div>
-          <h3 className="text-base sm:text-lg font-bold m-0 text-violet-100">Task Execution</h3>
+    <div className="main-chat mode-agent">
+      {/* Header */}
+      <div className="mode-header">
+        <div className="mode-header-left">
+          <span className="mode-badge agent-badge">Autonomous Agent</span>
+          <h3 className="mode-title" style={{ color: '#ede9fe' }}>Task Execution</h3>
         </div>
-        
-        <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-5 w-full sm:w-auto">
-          <button 
-            onClick={handleClearChat} 
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-red-500 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-all shrink-0"
-            title="Reset Agent"
-          >
-            <Trash2 size={14} /> <span className="hidden xs:inline">Reset</span>
+        <div className="mode-header-right">
+          <button className="clear-btn" onClick={handleClearChat} title="Reset Agent">
+            <Trash2 size={13} /> Reset
           </button>
-
-          <div className="flex items-center gap-2 text-[10px] sm:text-xs opacity-70 font-mono text-violet-300 shrink-0">
-            <Cpu size={14} className={loading ? 'animate-spin' : ''} />
-            <span className="hidden xs:inline">{loading ? 'Processing Task...' : 'Awaiting Task'}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', fontFamily: 'monospace', color: '#c4b5fd', opacity: 0.8 }}>
+            <Cpu size={13} className={loading ? 'spin' : ''} />
+            <span>{loading ? 'Processing...' : 'Awaiting Task'}</span>
           </div>
         </div>
       </div>
-      
-      <div className="chat-history flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+
+      {/* Messages */}
+      <div className="chat-history">
         {messages.map((msg, idx) => {
           const isBot = msg.role === 'bot';
           const isThinking = msg.content === 'Thinking...';
-          
+
           return (
-            <div key={idx} className={`message ${msg.role} text-sm sm:text-base max-w-[90%] sm:max-w-[80%]`}>
+            <div key={idx} className={`message ${msg.role}`}>
               {isBot ? (
-                <div className="bot-response-container prose prose-invert prose-sm sm:prose-base max-w-none flex flex-col gap-2">
+                <div className="bot-response-container" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                   {!isThinking && (
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-violet-400 uppercase tracking-widest mb-1">
-                      <CheckCircle2 size={12} /> execution completed
+                    <div className="execution-label">
+                      <CheckCircle2 size={11} /> Execution Complete
                     </div>
                   )}
-                  <ReactMarkdown 
+                  <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
-                      code({node, inline, className, children, ...props}) {
+                      code({ node, inline, className, children, ...props }) {
                         const match = /language-(\w+)/.exec(className || '');
                         return !inline && match ? (
-                          <div className="relative my-4 rounded-xl overflow-hidden border border-violet-500/20 bg-black/40">
-                            <div className="bg-black/60 px-4 py-1.5 text-[10px] text-violet-300/60 flex justify-between items-center border-b border-violet-500/10">
-                              <span className="font-mono uppercase">{match[1]} output</span>
-                              <Terminal size={12} />
+                          <div style={{ margin: '0.75rem 0', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(139,92,246,0.2)', background: 'rgba(0,0,0,0.4)' }}>
+                            <div style={{ background: 'rgba(0,0,0,0.6)', padding: '0.4rem 1rem', fontSize: '0.68rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(139,92,246,0.1)', color: 'rgba(196,181,253,0.6)' }}>
+                              <span style={{ fontFamily: 'monospace', textTransform: 'uppercase' }}>{match[1]} output</span>
+                              <Terminal size={11} />
                             </div>
-                            <SyntaxHighlighter 
-                              style={vscDarkPlus} 
-                              language={match[1]} 
-                              PreTag="div" 
-                              customStyle={{ margin: 0, padding: '1rem', fontSize: '0.8rem', background: 'transparent' }} 
+                            <SyntaxHighlighter
+                              style={vscDarkPlus}
+                              language={match[1]}
+                              PreTag="div"
+                              customStyle={{ margin: 0, padding: '1rem', fontSize: '0.8rem', background: 'transparent' }}
                               {...props}
                             >
                               {String(children).replace(/\n$/, '')}
                             </SyntaxHighlighter>
                           </div>
                         ) : (
-                          <code className="bg-violet-500/10 px-1.5 py-0.5 rounded text-violet-300" {...props}>
+                          <code style={{ background: 'rgba(139,92,246,0.1)', padding: '0.15rem 0.4rem', borderRadius: '5px', color: '#c4b5fd', fontSize: '0.85em' }} {...props}>
                             {children}
                           </code>
-                        )
+                        );
                       }
                     }}
                   >
                     {msg.content}
                   </ReactMarkdown>
-
                   {msg.latency_ms && (
-                    <div className="msg-meta flex gap-3 text-[10px] opacity-40 mt-2 font-mono">
+                    <div className="msg-meta">
                       <span>⚡ {(msg.latency_ms / 1000).toFixed(2)}s</span>
                       <span>🤖 {msg.model || 'mistral'}</span>
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="flex items-center gap-3 font-mono text-violet-100">
-                   <Zap size={14} className="text-violet-400 shrink-0" /> {msg.content}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontFamily: 'monospace', color: '#ede9fe' }}>
+                  <Zap size={13} style={{ color: '#a78bfa', flexShrink: 0 }} />
+                  {msg.content}
                 </div>
               )}
             </div>
@@ -96,57 +93,62 @@ export default function AgentChatView({
         <div ref={endOfMessagesRef} />
       </div>
 
-      <div className="chat-input-area p-4 sm:p-6 flex flex-col gap-3 relative">
+      {/* Input area */}
+      <div className="chat-input-area">
         {imageFile && (
-          <div className="absolute -top-12 left-6 bg-violet-600 p-2 px-4 rounded-full text-xs flex items-center gap-2 text-white shadow-lg animate-in fade-in slide-in-from-bottom-2">
-            <ImageIcon size={14} /> 
-            <span className="max-w-[150px] truncate">{imageFile.name}</span>
+          <div className="image-badge" style={{ background: '#7c3aed' }}>
+            <ImageIcon size={13} />
+            <span>{imageFile.name}</span>
             <button onClick={() => setImageFile(null)}>✕</button>
           </div>
         )}
-
         {recording && (
-          <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-red-500 p-2 px-4 rounded-full text-xs font-bold flex items-center gap-2 text-white shadow-lg animate-pulse">
-            <Mic size={14} /> Listening...
+          <div className="listening-badge">
+            <Mic size={13} /> Listening...
           </div>
         )}
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="flex gap-2 shrink-0">
+        <div className="chat-input-row">
+          <div className="chat-input-left-btns">
             {isSpeechSupported && (
-              <button 
-                className={`btn p-3 rounded-xl ${recording ? 'pulse-animation' : 'btn-secondary'}`} 
-                onClick={toggleRecording} 
+              <button
+                className={`btn btn-icon${recording ? ' pulse-animation' : ' btn-secondary'}`}
+                onClick={toggleRecording}
                 disabled={loading}
               >
-                {recording ? <Square size={20} /> : <Mic size={20} />}
+                {recording ? <Square size={18} /> : <Mic size={18} />}
               </button>
             )}
-
-            <label className="btn btn-secondary p-3 rounded-xl cursor-pointer bg-violet-500/10 border-violet-500/20 hover:bg-violet-500/20">
-              <ImageIcon size={20} className="text-violet-400" />
-              <input type="file" accept="image/*" className="hidden" onChange={(e) => setImageFile(e.target.files[0])} />
+            <label
+              className="btn btn-secondary btn-icon"
+              style={{ cursor: 'pointer', background: 'rgba(139,92,246,0.1)', borderColor: 'rgba(139,92,246,0.2)' }}
+              title="Attach image"
+            >
+              <ImageIcon size={18} style={{ color: '#a78bfa' }} />
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => setImageFile(e.target.files[0])} />
             </label>
           </div>
-          
-          <div className="flex-1 flex flex-col sm:flex-row gap-2 sm:gap-3 bg-black/20 p-1 sm:p-2 rounded-2xl border border-white/5 focus-within:border-violet-500/50 transition-colors">
-            <input 
-              type="text" 
-              placeholder={recording ? "Recording..." : "Define agent task..." }
-              className="flex-1 bg-transparent border-none p-3 text-sm sm:text-base outline-none font-mono disabled:opacity-50"
+
+          <div className="chat-input-box">
+            <input
+              type="text"
+              placeholder={recording ? 'Recording...' : 'Define agent task...'}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
               disabled={recording}
+              style={{ fontFamily: 'monospace' }}
             />
-            <button 
-              className="btn w-full sm:w-auto px-6 h-12 rounded-xl shrink-0 !bg-violet-600 hover:!bg-violet-500 text-sm sm:text-base" 
-              onClick={() => handleSend()} 
-              disabled={loading || recording || (!input.trim() && !imageFile)}
-            >
-              <Zap size={18} /> Execute
-            </button>
           </div>
+
+          <button
+            className="btn chat-send-btn"
+            style={{ background: '#7c3aed' }}
+            onClick={() => handleSend()}
+            disabled={loading || recording || (!input.trim() && !imageFile)}
+          >
+            <Zap size={16} /> <span>Execute</span>
+          </button>
         </div>
       </div>
     </div>

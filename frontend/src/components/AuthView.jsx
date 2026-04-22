@@ -15,11 +15,11 @@ export default function AuthView({ setToken }) {
     setLoading(true);
 
     try {
-      const endpoint = isLogin ? `${import.meta.env.VITE_API_BASE_URL}/auth/login` : `${import.meta.env.VITE_API_BASE_URL}/auth/register`;
-      const res = await axios.post(`${endpoint}`, {
-        username,
-        password
-      });
+      const endpoint = isLogin
+        ? `${import.meta.env.VITE_API_BASE_URL}/auth/login`
+        : `${import.meta.env.VITE_API_BASE_URL}/auth/register`;
+
+      const res = await axios.post(endpoint, { username, password });
 
       if (isLogin) {
         setToken(res.data.access_token);
@@ -34,50 +34,66 @@ export default function AuthView({ setToken }) {
     }
   };
 
+  const isSuccess = !isLogin && error.startsWith('Registered');
+
   return (
-    <div className="flex justify-center items-center min-h-screen w-full p-4 bg-background-color">
-      <div className="glass-panel w-full max-w-md mx-auto sm:w-[400px] p-6 sm:p-10 flex flex-col gap-6 shadow-2xl">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center tracking-tight text-white">
-          {isLogin ? 'Welcome Back' : 'Create Account'}
-        </h2>
-        
+    <div className="auth-wrapper">
+      <div className="glass-panel auth-card">
+
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: '0.25rem' }}>🤖</div>
+          <h2 className="auth-title">{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.3rem' }}>MindBot — AI Assistant</p>
+        </div>
+
         {error && (
-          <div className="p-3 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-xs sm:text-sm text-center animate-in fade-in zoom-in-95">
+          <div className={isSuccess ? 'auth-success' : 'auth-error'}>
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <input 
-            type="text" 
-            placeholder="Username" 
-            value={username} 
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <input
+            type="text"
+            placeholder="Username"
+            value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
-            className="w-full p-3.5 rounded-xl border border-white/10 bg-black/20 text-white focus:border-accent-color transition-colors outline-none text-sm sm:text-base"
+            autoComplete="username"
+            id="auth-username"
           />
-          <input 
-            type="password" 
-            placeholder="Password" 
-            value={password} 
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full p-3.5 rounded-xl border border-white/10 bg-black/20 text-white focus:border-accent-color transition-colors outline-none text-sm sm:text-base"
+            autoComplete={isLogin ? 'current-password' : 'new-password'}
+            id="auth-password"
           />
-          <button 
-            type="submit" 
-            className="btn w-full sm:w-auto mx-auto px-10 py-3.5 flex justify-center items-center gap-2 font-bold shadow-lg shadow-accent-color/20 mt-2 text-sm sm:text-base" 
+          <button
+            type="submit"
+            className="btn auth-submit-btn"
             disabled={loading}
+            id="auth-submit"
           >
-            {loading ? 'Processing...' : isLogin ? <><LogIn size={20} /> Login</> : <><UserPlus size={20} /> Register</>}
+            {loading
+              ? 'Processing...'
+              : isLogin
+                ? <><LogIn size={18} /> Login</>
+                : <><UserPlus size={18} /> Register</>
+            }
           </button>
         </form>
 
-        <p 
-          className="text-center text-sm text-text-secondary cursor-pointer hover:text-white transition-colors" 
+        <p
+          className="auth-switch"
           onClick={() => { setIsLogin(!isLogin); setError(''); }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && setIsLogin(!isLogin)}
         >
-          {isLogin ? "Don't have an account? Register" : "Already have an account? Login"}
+          {isLogin ? "Don't have an account? Register" : 'Already have an account? Login'}
         </p>
       </div>
     </div>

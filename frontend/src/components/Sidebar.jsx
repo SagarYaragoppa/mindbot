@@ -1,34 +1,37 @@
-import { Upload, FileText, Settings, Bot, Cpu, LogOut, Trash2, PlusCircle, MessageSquare, ShieldAlert, Sun, Moon, Menu, X as CloseIcon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import {
+  Upload, FileText, Settings, Bot, Cpu, LogOut, Trash2,
+  PlusCircle, MessageSquare, ShieldAlert, Sun, Moon
+} from 'lucide-react';
 
-export default function Sidebar({ mode, setMode, setToken, activeConversationId, setActiveConversationId, isAdmin, onOpenSettings, theme, setTheme }) {
+export default function Sidebar({
+  mode, setMode, setToken, activeConversationId, setActiveConversationId,
+  isAdmin, onOpenSettings, theme, setTheme, isOpen, onClose
+}) {
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [conversations, setConversations] = useState([]);
   const [lastSummary, setLastSummary] = useState('');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const [serverError, setServerError] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
-    
+
     const syncData = async () => {
       try {
         const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/list-docs`);
-        if (isMounted) {
-          setUploadedFiles(res.data.documents || []);
-          setServerError(false);
-        }
+        if (isMounted) setUploadedFiles(res.data.documents || []);
       } catch (err) {
-        console.error("Could not sync documents:", err);
-        if (isMounted) setServerError(true);
+        console.error('Could not sync documents:', err);
       }
-      
+
       try {
         await fetchConversations();
       } catch (err) {
-        console.error("Fetch convs failed:", err);
+        console.error('Fetch convs failed:', err);
       }
     };
 
@@ -57,7 +60,7 @@ export default function Sidebar({ mode, setMode, setToken, activeConversationId,
       const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/conversations`);
       setConversations(prev => [res.data, ...prev]);
       setActiveConversationId(res.data.id);
-      if (window.innerWidth < 1024) setIsMobileMenuOpen(false);
+      onClose(); // close sidebar on mobile after selecting
     } catch (err) {
       console.error(err);
     }
@@ -68,7 +71,7 @@ export default function Sidebar({ mode, setMode, setToken, activeConversationId,
       setUploadStatus(`Deleting ${fname}...`);
       await axios.delete(`${import.meta.env.VITE_API_BASE_URL}/delete-doc/${fname}`);
       setUploadedFiles(prev => prev.filter(f => f !== fname));
-      setUploadStatus(`Successfully removed ${fname}`);
+      setUploadStatus(`Removed ${fname}`);
     } catch (err) {
       console.error(err);
       setUploadStatus(`Failed to delete ${fname}`);
@@ -88,180 +91,202 @@ export default function Sidebar({ mode, setMode, setToken, activeConversationId,
       const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/upload-doc`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setUploadStatus(`Success!`);
+      setUploadStatus('Upload successful!');
       setUploadedFiles(prev => [...prev, file.name]);
-      if (res.data.summary) {
-        setLastSummary(res.data.summary);
-      }
+      if (res.data.summary) setLastSummary(res.data.summary);
     } catch (err) {
       console.error(err);
-      setUploadStatus(`Upload failed.`);
+      setUploadStatus('Upload failed.');
     } finally {
       setUploading(false);
       e.target.value = null;
     }
   };
 
+  const handleModeChange = (newMode) => {
+    setMode(newMode);
+    onClose(); // close sidebar on mobile
+  };
+
   const safeConversations = Array.isArray(conversations) ? conversations : [];
 
   return (
-    <>
-      {/* Mobile Header */}
-      <div className="lg:hidden flex items-center justify-between p-4 glass-panel mb-4">
-        <div className="flex items-center gap-2">
-          <Bot size={24} color="#3b82f6" />
-          <h2 className="text-xl font-bold">MindBot</h2>
-        </div>
-        <button 
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 bg-accent-color/10 rounded-lg text-accent-color"
+    <aside className={`sidebar${isOpen ? ' open' : ''}`} id="sidebar">
+      {/* Brand */}
+      <div className="sidebar-brand">
+        <Bot size={26} color="#3b82f6" />
+        <h2>MindBot</h2>
+        <button
+          className="theme-btn"
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
         >
-          {isMobileMenuOpen ? <CloseIcon size={24} /> : <Menu size={24} />}
+          {theme === 'dark'
+            ? <Sun size={17} />
+            : <Moon size={17} />
+          }
         </button>
       </div>
 
-      <div className={`sidebar glass-panel transition-all duration-300 ${isMobileMenuOpen ? 'max-h-[80vh] opacity-100 visible mb-4' : 'max-h-0 lg:max-h-none opacity-0 lg:opacity-100 invisible lg:visible overflow-hidden lg:overflow-y-auto'}`}>
-        <div className="hidden lg:flex items-center gap-3 mb-6">
-          <Bot size={32} color="#3b82f6" />
-          <h2 className="text-2xl font-bold">MindBot</h2>
-          <div className="flex-1"></div>
-          <button 
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="p-2 hover:bg-white/5 rounded-lg transition-colors"
-            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+      {/* Mode buttons */}
+      <div>
+        <p className="sidebar-section-title">Modes</p>
+        <div className="mode-buttons">
+          <button
+            className="btn mode-btn"
+            style={mode === 'chat'
+              ? { background: '#3b82f6' }
+              : { background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }
+            }
+            onClick={() => handleModeChange('chat')}
           >
-            {theme === 'dark' ? <Sun size={20} className="text-text-secondary" /> : <Moon size={20} className="text-text-primary" />}
+            <Bot size={16} /> General Chat
           </button>
-        </div>
-        
-        <div className="flex flex-col gap-3 mb-8">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-text-secondary mb-1">Modes</h3>
-          <button 
-            className={`btn w-full justify-start ${mode === 'chat' ? '' : 'btn-secondary'}`} 
-            onClick={() => { setMode('chat'); setIsMobileMenuOpen(false); }}
-            style={mode === 'chat' ? { background: 'var(--accent-color)' } : {}}
+          <button
+            className="btn mode-btn"
+            style={mode === 'rag'
+              ? { background: '#10b981' }
+              : { background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }
+            }
+            onClick={() => handleModeChange('rag')}
           >
-            <Bot size={18} /> General Chat
+            <FileText size={16} /> Document Q&A
           </button>
-          <button 
-            className={`btn w-full justify-start ${mode === 'rag' ? '' : 'btn-secondary'}`} 
-            onClick={() => { setMode('rag'); setIsMobileMenuOpen(false); }}
-            style={mode === 'rag' ? { background: '#10b981' } : {}}
+          <button
+            className="btn mode-btn"
+            style={mode === 'agent'
+              ? { background: '#8b5cf6' }
+              : { background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }
+            }
+            onClick={() => handleModeChange('agent')}
           >
-            <FileText size={18} /> Document Q&A
-          </button>
-          <button 
-            className={`btn w-full justify-start ${mode === 'agent' ? '' : 'btn-secondary'}`} 
-            onClick={() => { setMode('agent'); setIsMobileMenuOpen(false); }}
-            style={mode === 'agent' ? { background: '#8b5cf6' } : {}}
-          >
-            <Cpu size={18} /> Agent Tasks
+            <Cpu size={16} /> Agent Tasks
           </button>
           {isAdmin && (
-            <button 
-              className={`btn w-full justify-start ${mode === 'admin' ? '' : 'btn-secondary'}`} 
-              onClick={() => { setMode('admin'); setIsMobileMenuOpen(false); }} 
-              style={{ border: mode === 'admin' ? '1px solid #fff' : '1px solid var(--accent-color)' }}
+            <button
+              className="btn mode-btn"
+              style={{
+                background: mode === 'admin' ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${mode === 'admin' ? 'rgba(255,255,255,0.3)' : 'var(--border-color)'}`,
+                color: 'var(--accent-color)'
+              }}
+              onClick={() => handleModeChange('admin')}
             >
-              <ShieldAlert size={18} color={mode === 'admin' ? '#fff' : 'var(--accent-color)'} /> Admin Panel
+              <ShieldAlert size={16} /> Admin Panel
             </button>
           )}
-        </div>
-
-        <div className="mt-auto flex flex-col gap-4">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-text-secondary">Knowledge Base</h3>
-          <label className="btn w-full cursor-pointer">
-            <Upload size={18} />
-            {uploading ? 'Uploading...' : 'Upload PDF'}
-            <input type="file" accept=".pdf" className="hidden" onChange={handleFileUpload} disabled={uploading} />
-          </label>
-          {uploadStatus && <p className="text-xs text-text-secondary italic">{uploadStatus}</p>}
-          
-          {uploadedFiles.length > 0 && (
-            <div className="bg-white/5 rounded-xl p-3 border border-border-color">
-              <h4 className="text-[10px] uppercase font-bold text-text-secondary mb-2">Indexed Documents</h4>
-              <div className="flex flex-col gap-2 max-h-32 overflow-y-auto">
-                {uploadedFiles.map((fname, i) => (
-                  <div key={i} className="text-xs flex items-center justify-between group">
-                    <span className="flex items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap max-w-[140px]">
-                      <FileText size={12} className="shrink-0" /> {fname}
-                    </span>
-                    <Trash2 
-                      size={14} 
-                      className="text-red-500 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity" 
-                      onClick={() => handleDelete(fname)} 
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {lastSummary && (
-            <div className="summary-box p-4 rounded-xl border border-accent-color/30">
-              <div className="flex items-center gap-2 font-bold text-accent-color text-xs mb-2">
-                <Bot size={14} /> Quick Summary
-              </div>
-              <div className="text-xs max-h-32 overflow-y-auto leading-relaxed prose prose-invert prose-xs">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{lastSummary}</ReactMarkdown>
-              </div>
-              <button 
-                onClick={() => setLastSummary('')}
-                className="text-[10px] text-text-secondary underline mt-2 hover:text-white"
-              >
-                Clear
-              </button>
-            </div>
-          )}
-          
-          <div className="flex gap-2 mt-2">
-            <button 
-              className="btn btn-secondary flex-1 py-2" 
-              onClick={() => { onOpenSettings(); setIsMobileMenuOpen(false); }}
-              title="Global Settings Configuration"
-            >
-              <Settings size={16} /> Config
-            </button>
-            
-            <button 
-              className="btn flex-1 py-2 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20" 
-              onClick={() => setToken(null)}
-              title="Logout"
-            >
-              <LogOut size={16} /> Logout
-            </button>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto border-t border-border-color pt-4 mt-6">
-          <div className="flex justify-between items-center mb-4 px-1">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-text-secondary">Conversations</h3>
-            <PlusCircle size={18} className="cursor-pointer text-accent-color hover:scale-110 transition-transform" onClick={createNewChat} />
-          </div>
-          
-          <div className="flex flex-col gap-2">
-            {safeConversations.map(conv => {
-              const date = new Date(conv.created_at);
-              const dateStr = `${date.getMonth()+1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
-              const isActive = activeConversationId === conv.id;
-              
-              return (
-                <div 
-                  key={conv.id} 
-                  onClick={() => { setActiveConversationId(conv.id); setIsMobileMenuOpen(false); }}
-                  className={`p-3 rounded-lg cursor-pointer flex items-center gap-3 text-sm transition-all ${isActive ? 'bg-accent-color text-white' : 'bg-white/5 text-text-primary hover:bg-white/10'}`}
-                >
-                  <MessageSquare size={14} className={isActive ? 'opacity-100' : 'opacity-60'} />
-                  <div className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
-                    {conv.title}
-                  </div>
-                  <div className={`text-[10px] ${isActive ? 'text-white/70' : 'text-text-secondary/60'}`}>{dateStr}</div>
-                </div>
-              );
-            })}
-          </div>
         </div>
       </div>
-    </>
+
+      {/* Knowledge Base Upload */}
+      <div className="kb-section">
+        <p className="sidebar-section-title">Knowledge Base</p>
+        <label className="btn" style={{ width: '100%', cursor: 'pointer' }}>
+          <Upload size={15} />
+          {uploading ? 'Uploading...' : 'Upload PDF'}
+          <input
+            type="file"
+            accept=".pdf"
+            style={{ display: 'none' }}
+            onChange={handleFileUpload}
+            disabled={uploading}
+          />
+        </label>
+
+        {uploadStatus && (
+          <p className="upload-status-text">{uploadStatus}</p>
+        )}
+
+        {uploadedFiles.length > 0 && (
+          <div className="kb-file-list">
+            <p className="sidebar-section-title" style={{ marginBottom: '0.5rem' }}>Indexed Documents</p>
+            {uploadedFiles.map((fname, i) => (
+              <div key={i} className="kb-file-item">
+                <span className="kb-file-name">
+                  <FileText size={11} style={{ flexShrink: 0 }} />
+                  {fname}
+                </span>
+                <button
+                  className="kb-delete-btn"
+                  onClick={() => handleDelete(fname)}
+                  title={`Delete ${fname}`}
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {lastSummary && (
+          <div className="summary-box">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, color: 'var(--accent-color)', fontSize: '0.72rem', marginBottom: '0.5rem' }}>
+              <Bot size={13} /> Quick Summary
+            </div>
+            <div style={{ fontSize: '0.78rem', maxHeight: '120px', overflowY: 'auto', lineHeight: 1.5 }}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{lastSummary}</ReactMarkdown>
+            </div>
+            <button
+              onClick={() => setLastSummary('')}
+              style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', marginTop: '0.4rem', textDecoration: 'underline' }}
+            >
+              Clear
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Conversations */}
+      <div className="conversations-section">
+        <div className="conversations-header">
+          <p className="sidebar-section-title" style={{ marginBottom: 0 }}>Conversations</p>
+          <button className="icon-btn" onClick={createNewChat} title="New Conversation">
+            <PlusCircle size={17} />
+          </button>
+        </div>
+        <div className="conversations-list">
+          {safeConversations.map(conv => {
+            const date = new Date(conv.created_at);
+            const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+            const isActive = activeConversationId === conv.id;
+
+            return (
+              <div
+                key={conv.id}
+                className={`conversation-item${isActive ? ' active' : ''}`}
+                onClick={() => {
+                  setActiveConversationId(conv.id);
+                  onClose();
+                }}
+              >
+                <MessageSquare size={13} style={{ flexShrink: 0, opacity: isActive ? 1 : 0.6 }} />
+                <span className="conversation-title">{conv.title}</span>
+                <span className="conversation-date">{dateStr}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Bottom actions */}
+      <div className="sidebar-actions">
+        <button
+          className="btn"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+          onClick={() => { onOpenSettings(); onClose(); }}
+          title="Configuration"
+        >
+          <Settings size={15} /> Config
+        </button>
+        <button
+          className="btn"
+          style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171' }}
+          onClick={() => setToken(null)}
+          title="Logout"
+        >
+          <LogOut size={15} /> Logout
+        </button>
+      </div>
+    </aside>
   );
 }
