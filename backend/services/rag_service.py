@@ -181,29 +181,39 @@ def query_rag(query: str, conversation_id: int = None, model: str = None, provid
         try:
             if not hasattr(vector_store, 'index') or vector_store.index.ntotal > 0:
                 print(f"DEBUG: Searching vector store.")
-                # Use top 2 chunks max
-                docs = vector_store.similarity_search(actual_query, k=2)
+                # Requirement 3: Use top 3 results
+                docs = vector_store.similarity_search(actual_query, k=3)
                 print(f"DEBUG: Documents retrieved: {len(docs)}")
         except Exception as e:
             safe_error = sanitize_text(str(e))
             print(f"DEBUG: similarity_search error: {safe_error}")
 
-    # Join clean context: Limit to 300 chars per chunk
-    context = "\n\n".join([doc.page_content[:300] for doc in docs]) if docs else ""
+    # Requirement 2: Clean context before passing to model
+    cleaned_chunks = []
+    for doc in docs:
+        # Replace newlines with spaces and trim
+        content = doc.page_content.replace("\n", " ").strip()
+        # Limit to ~400 chars
+        cleaned_chunks.append(content[:400])
+    
+    context = "\n\n".join(cleaned_chunks) if cleaned_chunks else ""
 
-    # Updated prompt
-    prompt = f"""You are an intelligent assistant.
+    # Requirement 1: Update RAG prompt
+    prompt = f"""You are an AI assistant.
 
-Answer the user's question using ONLY the provided context.
+Answer the user's question using ONLY the provided document context.
 
 Rules:
-- If answer exists → explain clearly in simple terms
-- If partially available → summarize best possible answer
-- If not found → say: "The document does not contain a clear answer."
 
-- DO NOT return raw chunks
-- DO NOT include 'Sources', '###', or filenames
-- DO NOT include newline escape characters like \\n
+* Provide a clear and well-structured answer
+* Use bullet points when listing items
+* Keep the answer concise and easy to read
+* If the document contains lists (like applications, advantages, etc.), present them properly
+* Do NOT include raw chunks, file names, or "Sources"
+* Do NOT include escape characters like \\n
+
+If the answer is not clearly present, say:
+"The document does not contain a clear answer."
 
 Context:
 {context}
@@ -218,13 +228,13 @@ Answer:"""
     if not response:
         return "Something went wrong. Please try again."
 
-    # Clean response before returning
-    response = response.replace("\\n", "\n")
-    response = response.replace("###", "")
+    # Requirement 4: Clean final response
+    response = response.replace("\\n", "\n") # Handle escape characters
+    response = response.replace("###", "")   # Remove formatting artifacts
     response = response.strip()
 
     # Fallback check
-    if not response or response.lower().strip(".") == "not found in document":
+    if not response or "not found in document" in response.lower() or "not clearly present" in response.lower():
          response = "The document does not contain a clear answer."
 
     return response
