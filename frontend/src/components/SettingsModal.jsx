@@ -12,10 +12,6 @@ export default function SettingsModal({ onClose, temperature, setTemperature, ll
 
   const models = [
     { name: 'Mistral Small', id: 'mistral-small', provider: 'mistral', category: 'Cloud' },
-    { name: 'Microsoft Phi-3', id: 'phi3', provider: 'local', category: 'Local' },
-    { name: 'TinyLlama', id: 'tinyllama', provider: 'local', category: 'Local' },
-    { name: 'LLaMA 3', id: 'llama3', provider: 'local', category: 'Local' },
-    { name: 'LLaVA (Vision)', id: 'llava', provider: 'local', category: 'Local' },
   ];
 
   const handleModelChange = (e) => {

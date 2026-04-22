@@ -1,7 +1,6 @@
 fastapi
 uvicorn
 sqlalchemy
-faiss-cpu
 python-multipart
 pypdf
 python-dotenv
@@ -15,7 +14,5 @@ numexpr
 faster-whisper
 langchain
 langchain-community
-langchain-huggingface
 langchain-text-splitters
-sentence-transformers
 beautifulsoup4
