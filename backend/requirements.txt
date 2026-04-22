@@ -14,8 +14,9 @@ numexpr
 faster-whisper
 langchain
 langchain-community
+langchain-mistralai
 langchain-text-splitters
 beautifulsoup4
 faiss-cpu
-sentence-transformers
-langchain-huggingface
+
+

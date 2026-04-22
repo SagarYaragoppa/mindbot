@@ -3,22 +3,25 @@ import shutil
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_mistralai import MistralAIEmbeddings
 
 from backend.services.llm_service import generate_chat_response
 from backend.core.text_utils import sanitize_text, safe_response
 
-
 # Path to store FAISS index
 DB_PATH = "backend/data/faiss_index"
 
-# Embeddings enabled but using small model to save memory
+# Embeddings enabled using Mistral Cloud API to save memory
 try:
-    embeddings = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
-    )
+    api_key = os.getenv("MISTRAL_API_KEY")
+    if not api_key:
+        from dotenv import load_dotenv
+        load_dotenv()
+        api_key = os.getenv("MISTRAL_API_KEY")
+
+    embeddings = MistralAIEmbeddings(mistral_api_key=api_key) if api_key else None
 except Exception as e:
-    print(f"WARNING: Failed to load embeddings - {e}")
+    print(f"WARNING: Failed to load Mistral embeddings - {e}")
     embeddings = None
 vector_store = None
 

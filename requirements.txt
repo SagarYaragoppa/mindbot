@@ -8,6 +8,7 @@ langchain-community>=0.2.0
 langchain-experimental==0.0.65
 duckduckgo-search
 mistralai
+langchain-mistralai
 python-multipart
 SpeechRecognition
 pypdf
@@ -21,5 +22,3 @@ python-multipart
 python-magic-bin; sys_platform == 'win32'
 python-magic; sys_platform != 'win32'
 faiss-cpu
-sentence-transformers
-langchain-huggingface
